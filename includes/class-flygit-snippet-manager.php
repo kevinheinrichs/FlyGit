@@ -1109,23 +1109,24 @@ class FlyGit_Snippet_Manager {
      * @return string
      */
     protected function generate_storage_filename( $slug, $relative_path, array $current_files, array $existing_sources ) {
-        foreach ( $existing_sources as $existing_file => $source_path ) {
-            if ( $source_path === $relative_path && ! in_array( $existing_file, $current_files, true ) ) {
-                return $existing_file;
+        $existing_file = null;
+
+        foreach ( $existing_sources as $mapped_file => $source_path ) {
+            if ( $source_path === $relative_path && ! in_array( $mapped_file, $current_files, true ) ) {
+                $existing_file = $mapped_file;
+                break;
             }
         }
 
-        $slug_part     = sanitize_title( $slug );
         $relative_base = preg_replace( '/\.php$/i', '', $relative_path );
         $relative_base = str_replace( array( '/', '\\' ), '-', $relative_base );
         $relative_part = sanitize_title( $relative_base );
 
-        $combined = trim( $slug_part . '-' . $relative_part, '-' );
-        if ( '' === $combined ) {
-            $combined = $slug_part ? $slug_part : 'snippet';
+        if ( '' === $relative_part ) {
+            $relative_part = 'snippet';
         }
 
-        $base        = self::STORAGE_PREFIX . $combined;
+        $base        = self::STORAGE_PREFIX . $relative_part;
         $storage_dir = trailingslashit( $this->get_storage_directory_path() );
         $counter     = 1;
 
@@ -1133,7 +1134,18 @@ class FlyGit_Snippet_Manager {
             $suffix    = ( 1 === $counter ) ? '' : '-' . $counter;
             $file_name = $base . $suffix . '.php';
             $counter++;
-        } while ( in_array( $file_name, $current_files, true ) || file_exists( $storage_dir . $file_name ) );
+
+            $in_use = in_array( $file_name, $current_files, true );
+            $exists = file_exists( $storage_dir . $file_name );
+
+            if ( $exists && $existing_file && $existing_file === $file_name ) {
+                $exists = false;
+            }
+        } while ( $in_use || $exists );
+
+        if ( $existing_file && $existing_file === $file_name ) {
+            return $existing_file;
+        }
 
         return $file_name;
     }
