@@ -339,7 +339,7 @@ class FlyGit_Snippet_Manager {
 
             $storage_filename = $this->generate_storage_filename( $slug, $file['relative_path'], $written_files, $existing_sources );
             $target_path      = trailingslashit( $storage_dir ) . $storage_filename;
-            $header           = $this->resolve_snippet_header( $target_path, $storage_filename );
+            $header           = $this->resolve_snippet_header( $target_path, $storage_filename, $file['relative_path'] );
             $code             = $this->normalize_snippet_content( $content );
             $final_content    = $this->build_snippet_file_contents( $header, $code );
 
@@ -697,15 +697,20 @@ class FlyGit_Snippet_Manager {
     /**
      * Generate the snippet header comment block.
      *
-     * @param string $file_name Snippet file name.
+     * @param string $file_name      Snippet file name.
+     * @param string $relative_path  Original repository relative path.
      *
      * @return string
      */
-    protected function generate_snippet_header( $file_name ) {
+    protected function generate_snippet_header( $file_name, $relative_path = '' ) {
         $display_name = pathinfo( $file_name, PATHINFO_FILENAME );
         $timestamp    = current_time( 'mysql' );
 
-        if ( preg_match( '/(^|-)uptime-kuma$/i', $display_name ) ) {
+        $relative_basename = '' !== $relative_path ? strtolower( basename( $relative_path ) ) : '';
+
+        if ( 'demo.php' === $relative_basename ) {
+            $name = 'Demo';
+        } elseif ( preg_match( '/(^|-)uptime-kuma$/i', $display_name ) ) {
             $name = 'Uptime Kuma';
         } else {
             $name = 'FlyGit ' . $display_name;
@@ -723,12 +728,13 @@ class FlyGit_Snippet_Manager {
     /**
      * Determine the snippet header to use when writing a file.
      *
-     * @param string $target_path  Destination file path.
-     * @param string $storage_file Generated storage file name.
+     * @param string $target_path           Destination file path.
+     * @param string $storage_file          Generated storage file name.
+     * @param string $source_relative_path  Original repository relative path.
      *
      * @return string
      */
-    protected function resolve_snippet_header( $target_path, $storage_file ) {
+    protected function resolve_snippet_header( $target_path, $storage_file, $source_relative_path = '' ) {
         if ( file_exists( $target_path ) ) {
             $existing_content = file_get_contents( $target_path );
 
@@ -741,7 +747,7 @@ class FlyGit_Snippet_Manager {
             }
         }
 
-        return $this->generate_snippet_header( $storage_file );
+        return $this->generate_snippet_header( $storage_file, $source_relative_path );
     }
 
     /**
