@@ -47,6 +47,7 @@ function flygit_init() {
     add_action( 'admin_post_flygit_save_webhook_settings', array( $admin, 'handle_webhook_settings' ) );
     add_action( 'admin_post_flygit_uninstall', array( $admin, 'handle_uninstall_request' ) );
     add_action( 'admin_post_flygit_import_snippet', array( $admin, 'handle_snippet_import_request' ) );
+    add_action( 'admin_post_flygit_update_snippet_settings', array( $admin, 'handle_snippet_settings_request' ) );
     add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_assets' ) );
 
     add_action( 'rest_api_init', array( $webhook, 'register_routes' ) );

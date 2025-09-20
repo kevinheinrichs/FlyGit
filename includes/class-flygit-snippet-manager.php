@@ -37,13 +37,14 @@ class FlyGit_Snippet_Manager {
      * @param string $file_path      Legacy parameter maintained for backwards compatibility.
      * @param string $branch         Branch name.
      * @param string $access_token   Optional GitHub access token.
+     * @param string $name           Optional custom display name.
      *
      * @return string|WP_Error Success message or error on failure.
      */
-    public function import_from_repository( $repository_url, $file_path = '', $branch = 'main', $access_token = '' ) {
+    public function import_from_repository( $repository_url, $file_path = '', $branch = 'main', $access_token = '', $name = '' ) {
         unset( $file_path );
 
-        return $this->perform_import( $repository_url, $branch, $access_token );
+        return $this->perform_import( $repository_url, $branch, $access_token, null, $name );
     }
 
     /**
@@ -53,10 +54,11 @@ class FlyGit_Snippet_Manager {
      * @param string $repository_url  Optional repository URL override.
      * @param string $branch          Optional branch override.
      * @param string $access_token    Optional access token override.
+     * @param string $name            Optional display name override.
      *
      * @return string|WP_Error
      */
-    public function import_installation( $installation_id, $repository_url = '', $branch = '', $access_token = '' ) {
+    public function import_installation( $installation_id, $repository_url = '', $branch = '', $access_token = '', $name = '' ) {
         $installation = $this->get_installation_by_id( $installation_id );
 
         if ( ! $installation ) {
@@ -67,7 +69,7 @@ class FlyGit_Snippet_Manager {
         $branch         = ! empty( $branch ) ? $branch : ( isset( $installation['branch'] ) ? $installation['branch'] : 'main' );
         $access_token   = ! empty( $access_token ) ? $access_token : ( isset( $installation['access_token'] ) ? $installation['access_token'] : '' );
 
-        return $this->perform_import( $repository_url, $branch, $access_token, $installation );
+        return $this->perform_import( $repository_url, $branch, $access_token, $installation, $name );
     }
 
     /**
@@ -151,6 +153,19 @@ class FlyGit_Snippet_Manager {
             if ( ! isset( $installation['sources'] ) || ! is_array( $installation['sources'] ) ) {
                 $installation['sources'] = array();
             }
+
+            $name_value = isset( $installation['name'] ) ? (string) $installation['name'] : '';
+            $name_value = trim( $name_value );
+
+            if ( '' === $name_value ) {
+                if ( isset( $installation['slug'] ) && '' !== $installation['slug'] ) {
+                    $installation['name'] = $installation['slug'];
+                } else {
+                    $installation['name'] = __( 'Snippet Repository', 'flygit' );
+                }
+            } else {
+                $installation['name'] = $name_value;
+            }
         }
 
         return $installations;
@@ -193,6 +208,20 @@ class FlyGit_Snippet_Manager {
 
         foreach ( $installations as $index => $installation ) {
             if ( isset( $installation['id'] ) && $installation['id'] === $installation_id ) {
+                if ( isset( $data['name'] ) ) {
+                    $normalized_name = sanitize_text_field( (string) $data['name'] );
+
+                    if ( '' === $normalized_name ) {
+                        if ( isset( $installation['slug'] ) && '' !== $installation['slug'] ) {
+                            $normalized_name = $installation['slug'];
+                        } else {
+                            $normalized_name = __( 'Snippet Repository', 'flygit' );
+                        }
+                    }
+
+                    $data['name'] = $normalized_name;
+                }
+
                 $installations[ $index ] = array_merge( $installation, $data );
                 $updated                 = true;
                 break;
@@ -263,13 +292,15 @@ class FlyGit_Snippet_Manager {
      * @param string     $branch                Branch name.
      * @param string     $access_token          Access token.
      * @param array|null $existing_installation Existing installation data.
+     * @param string     $custom_name           Optional custom display name.
      *
      * @return string|WP_Error
      */
-    protected function perform_import( $repository_url, $branch, $access_token, ?array $existing_installation = null ) {
+    protected function perform_import( $repository_url, $branch, $access_token, ?array $existing_installation = null, $custom_name = '' ) {
         $repository_url = esc_url_raw( trim( $repository_url ) );
         $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : 'main';
         $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : '';
+        $custom_name    = is_string( $custom_name ) ? sanitize_text_field( $custom_name ) : '';
 
         if ( empty( $repository_url ) ) {
             return new WP_Error( 'flygit_snippet_invalid_repository', __( 'Repository URL is required.', 'flygit' ) );
@@ -313,13 +344,19 @@ class FlyGit_Snippet_Manager {
                 $slug = $this->ensure_unique_slug( $this->generate_installation_slug( $repository['repo'] ), $installation_id );
             }
 
-            if ( empty( $name ) ) {
+            if ( '' !== $custom_name ) {
+                $name = $custom_name;
+            } elseif ( empty( $name ) ) {
                 $name = $this->generate_installation_name( $repository['repo'] );
             }
         } else {
             $installation_id = $this->generate_installation_id();
             $slug            = $this->generate_installation_slug( $repository['repo'] );
-            $name            = $this->generate_installation_name( $repository['repo'] );
+            $name            = ( '' !== $custom_name ) ? $custom_name : $this->generate_installation_name( $repository['repo'] );
+        }
+
+        if ( '' === $name ) {
+            $name = $this->generate_installation_name( $repository['repo'] );
         }
 
         $written_files = array();

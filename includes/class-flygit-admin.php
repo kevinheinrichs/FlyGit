@@ -162,6 +162,48 @@ class FlyGit_Admin {
     }
 
     /**
+     * Handle snippet settings updates submitted from the dashboard.
+     */
+    public function handle_snippet_settings_request() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have permission to perform this action.', 'flygit' ) );
+        }
+
+        check_admin_referer( 'flygit_snippet_settings' );
+
+        $installation_id = isset( $_POST['installation_id'] ) ? sanitize_text_field( wp_unslash( $_POST['installation_id'] ) ) : '';
+
+        if ( empty( $installation_id ) ) {
+            $this->redirect_with_message( 'error', __( 'Invalid snippet settings request. Please try again.', 'flygit' ) );
+        }
+
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( '' === $name ) {
+            $this->redirect_with_message( 'error', __( 'Please provide a name for the snippet repository.', 'flygit' ) );
+        }
+
+        $snippet_installation = $this->snippets->get_installation_by_id( $installation_id );
+
+        if ( ! $snippet_installation ) {
+            $this->redirect_with_message( 'error', __( 'The requested snippet installation could not be found.', 'flygit' ) );
+        }
+
+        $result = $this->snippets->update_installation(
+            $installation_id,
+            array(
+                'name' => $name,
+            )
+        );
+
+        if ( is_wp_error( $result ) ) {
+            $this->redirect_with_message( 'error', $result->get_error_message() );
+        }
+
+        $this->redirect_with_message( 'success', __( 'Snippet repository name saved.', 'flygit' ) );
+    }
+
+    /**
      * Handle uninstall requests submitted from the dashboard.
      */
     public function handle_uninstall_request() {
@@ -216,11 +258,12 @@ class FlyGit_Admin {
         $repository      = isset( $_POST['repository_url'] ) ? esc_url_raw( wp_unslash( $_POST['repository_url'] ) ) : '';
         $branch          = isset( $_POST['branch'] ) ? sanitize_text_field( wp_unslash( $_POST['branch'] ) ) : 'main';
         $access_token    = isset( $_POST['access_token'] ) ? sanitize_text_field( wp_unslash( $_POST['access_token'] ) ) : '';
+        $name            = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
 
         if ( ! empty( $installation_id ) ) {
-            $result = $this->snippets->import_installation( $installation_id, $repository, $branch, $access_token );
+            $result = $this->snippets->import_installation( $installation_id, $repository, $branch, $access_token, $name );
         } else {
-            $result = $this->snippets->import_from_repository( $repository, '', $branch, $access_token );
+            $result = $this->snippets->import_from_repository( $repository, '', $branch, $access_token, $name );
         }
 
         if ( is_wp_error( $result ) ) {

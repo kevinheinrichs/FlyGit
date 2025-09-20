@@ -358,10 +358,11 @@
                     $snippet_uninstall_label = ! empty( $snippet_installation['name'] ) ? $snippet_installation['name'] : $snippet_installation['id'];
                     $snippet_uninstall_message = sprintf( esc_html__( 'Are you sure you want to uninstall the snippet repository "%s"?', 'flygit' ), $snippet_uninstall_label );
                     $snippet_webhook_element_id = 'flygit-webhook-url-' . sanitize_html_class( $snippet_installation['id'] );
+                    $snippet_display_name      = ! empty( $snippet_installation['name'] ) ? $snippet_installation['name'] : ( isset( $snippet_installation['slug'] ) ? $snippet_installation['slug'] : __( 'Snippet Repository', 'flygit' ) );
                     ?>
                     <details class="flygit-item">
                         <summary>
-                            <span class="flygit-item-title"><?php echo esc_html( $snippet_installation['name'] ); ?></span>
+                            <span class="flygit-item-title"><?php echo esc_html( $snippet_display_name ); ?></span>
                             <span class="flygit-item-meta">
                                 <span><?php printf( esc_html__( '%d files', 'flygit' ), $snippet_count ); ?></span>
                                 <?php if ( ! empty( $snippet_last ) ) : ?>
@@ -412,6 +413,17 @@
 
                             <div class="flygit-installation-settings">
                                 <h4><?php esc_html_e( 'FlyGit Settings', 'flygit' ); ?></h4>
+
+                                <form class="flygit-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                    <?php wp_nonce_field( 'flygit_snippet_settings' ); ?>
+                                    <input type="hidden" name="action" value="flygit_update_snippet_settings" />
+                                    <input type="hidden" name="installation_id" value="<?php echo esc_attr( $snippet_installation['id'] ); ?>" />
+                                    <label>
+                                        <?php esc_html_e( 'Display Name', 'flygit' ); ?>
+                                        <input type="text" name="name" value="<?php echo esc_attr( $snippet_display_name ); ?>" required />
+                                    </label>
+                                    <button type="submit" class="button"><?php esc_html_e( 'Save Name', 'flygit' ); ?></button>
+                                </form>
 
                                 <div class="flygit-installation-webhook">
                                     <span class="flygit-installation-subtitle"><?php esc_html_e( 'Webhook Endpoint', 'flygit' ); ?></span>
@@ -496,6 +508,11 @@
         <form class="flygit-form flygit-snippet-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
             <input type="hidden" name="action" value="flygit_import_snippet" />
+
+            <label>
+                <?php esc_html_e( 'Display Name', 'flygit' ); ?>
+                <input type="text" name="name" placeholder="<?php esc_attr_e( 'Code Snippets', 'flygit' ); ?>" />
+            </label>
 
             <label>
                 <?php esc_html_e( 'Repository URL', 'flygit' ); ?>
