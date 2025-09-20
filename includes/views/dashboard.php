@@ -8,6 +8,10 @@
 /** @var string $status */
 /** @var string $message */
 /** @var array $installed_count */
+/** @var array $code_snippets */
+/** @var string $code_snippet_error */
+/** @var string $snippet_storage_path */
+/** @var string $snippet_storage_display */
 
 ?>
 <div class="wrap flygit-dashboard">
@@ -325,6 +329,103 @@
                 </footer>
             </section>
         </div>
+</div>
+
+<section class="flygit-section flygit-snippets-section">
+    <header class="flygit-section-header">
+        <h2><?php esc_html_e( 'Code Snippets', 'flygit' ); ?></h2>
+    </header>
+    <div class="flygit-snippets-body">
+        <p class="description">
+            <?php esc_html_e( 'Import reusable PHP snippets directly from GitHub repositories. Imported snippets are stored in:', 'flygit' ); ?>
+            <code><?php echo esc_html( $snippet_storage_display ); ?></code>
+            <?php if ( $snippet_storage_display !== $snippet_storage_path ) : ?>
+                <span class="flygit-snippets-path-alt">(<?php echo esc_html( $snippet_storage_path ); ?>)</span>
+            <?php endif; ?>
+        </p>
+
+        <form class="flygit-form flygit-snippet-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
+            <input type="hidden" name="action" value="flygit_import_snippet" />
+
+            <label>
+                <?php esc_html_e( 'Repository URL', 'flygit' ); ?>
+                <input type="url" name="repository_url" placeholder="https://github.com/owner/repository" required />
+            </label>
+
+            <label>
+                <?php esc_html_e( 'Repository File Path', 'flygit' ); ?>
+                <input type="text" name="file_path" placeholder="path/to/snippet.php" required />
+            </label>
+
+            <label>
+                <?php esc_html_e( 'Branch', 'flygit' ); ?>
+                <input type="text" name="branch" placeholder="main" />
+            </label>
+
+            <label>
+                <?php esc_html_e( 'Access Token (optional)', 'flygit' ); ?>
+                <input type="password" name="access_token" autocomplete="off" />
+            </label>
+
+            <p class="description">
+                <?php esc_html_e( 'Provide a GitHub personal access token when importing from private repositories.', 'flygit' ); ?>
+            </p>
+
+            <button type="submit" class="button button-primary">
+                <?php esc_html_e( 'Import Snippet', 'flygit' ); ?>
+            </button>
+        </form>
+
+        <?php if ( ! empty( $code_snippet_error ) ) : ?>
+            <div class="notice notice-error inline">
+                <p><?php echo esc_html( $code_snippet_error ); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <div class="flygit-snippets-list">
+            <h3><?php esc_html_e( 'Stored Snippets', 'flygit' ); ?></h3>
+
+            <?php if ( ! empty( $code_snippets ) ) : ?>
+                <ul class="flygit-snippet-list">
+                    <?php foreach ( $code_snippets as $snippet ) : ?>
+                        <?php
+                        $metadata = isset( $snippet['metadata'] ) && is_array( $snippet['metadata'] ) ? $snippet['metadata'] : array();
+                        $snippet_title = ! empty( $metadata['name'] ) ? $metadata['name'] : $snippet['file'];
+                        $snippet_description = isset( $metadata['description'] ) ? $metadata['description'] : '';
+                        $snippet_created = isset( $metadata['created_at'] ) ? $metadata['created_at'] : '';
+                        $snippet_status = isset( $metadata['status'] ) ? $metadata['status'] : '';
+                        $snippet_updated = ( isset( $snippet['modified'] ) && $snippet['modified'] ) ? wp_date( 'Y-m-d H:i:s', (int) $snippet['modified'] ) : '';
+                        $snippet_size = ( isset( $snippet['size'] ) && is_numeric( $snippet['size'] ) ) ? size_format( (float) $snippet['size'] ) : '';
+                        ?>
+                        <li class="flygit-snippet-item">
+                            <span class="flygit-snippet-title"><?php echo esc_html( $snippet_title ); ?></span>
+                            <span class="flygit-snippet-meta">
+                                <span><strong><?php esc_html_e( 'File:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet['file'] ); ?></span>
+                                <?php if ( ! empty( $snippet_created ) ) : ?>
+                                    <span><strong><?php esc_html_e( 'Created:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet_created ); ?></span>
+                                <?php endif; ?>
+                                <?php if ( ! empty( $snippet_updated ) ) : ?>
+                                    <span><strong><?php esc_html_e( 'Updated:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet_updated ); ?></span>
+                                <?php endif; ?>
+                                <?php if ( ! empty( $snippet_size ) ) : ?>
+                                    <span><strong><?php esc_html_e( 'Size:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet_size ); ?></span>
+                                <?php endif; ?>
+                                <?php if ( ! empty( $snippet_status ) ) : ?>
+                                    <span><strong><?php esc_html_e( 'Status:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet_status ); ?></span>
+                                <?php endif; ?>
+                            </span>
+                            <?php if ( ! empty( $snippet_description ) ) : ?>
+                                <p class="flygit-snippet-description"><?php echo esc_html( $snippet_description ); ?></p>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else : ?>
+                <p class="description"><?php esc_html_e( 'No snippets imported yet.', 'flygit' ); ?></p>
+            <?php endif; ?>
+        </div>
     </div>
+</section>
 
 </div>

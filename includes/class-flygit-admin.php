@@ -18,12 +18,20 @@ class FlyGit_Admin {
     protected $installer;
 
     /**
+     * Snippet manager instance.
+     *
+     * @var FlyGit_Snippet_Manager
+     */
+    protected $snippets;
+
+    /**
      * Constructor.
      *
      * @param FlyGit_Installer $installer Installer instance.
      */
-    public function __construct( FlyGit_Installer $installer ) {
+    public function __construct( FlyGit_Installer $installer, FlyGit_Snippet_Manager $snippets ) {
         $this->installer = $installer;
+        $this->snippets  = $snippets;
     }
 
     /**
@@ -158,6 +166,30 @@ class FlyGit_Admin {
     }
 
     /**
+     * Handle snippet import submissions.
+     */
+    public function handle_snippet_import_request() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have permission to perform this action.', 'flygit' ) );
+        }
+
+        check_admin_referer( 'flygit_import_snippet' );
+
+        $repository    = isset( $_POST['repository_url'] ) ? wp_unslash( $_POST['repository_url'] ) : '';
+        $file_path     = isset( $_POST['file_path'] ) ? wp_unslash( $_POST['file_path'] ) : '';
+        $branch        = isset( $_POST['branch'] ) ? wp_unslash( $_POST['branch'] ) : 'main';
+        $access_token  = isset( $_POST['access_token'] ) ? wp_unslash( $_POST['access_token'] ) : '';
+
+        $result = $this->snippets->import_from_repository( $repository, $file_path, $branch, $access_token );
+
+        if ( is_wp_error( $result ) ) {
+            $this->redirect_with_message( 'error', $result->get_error_message() );
+        }
+
+        $this->redirect_with_message( 'success', $result );
+    }
+
+    /**
      * Output the FlyGit dashboard.
      */
     public function render_dashboard() {
@@ -255,6 +287,28 @@ class FlyGit_Admin {
                 }
             } else {
                 continue;
+            }
+        }
+
+        $code_snippet_error   = '';
+        $code_snippets        = $this->snippets->get_snippets();
+        if ( is_wp_error( $code_snippets ) ) {
+            $code_snippet_error = $code_snippets->get_error_message();
+            $code_snippets      = array();
+        }
+
+        $snippet_storage_path    = $this->snippets->get_storage_directory_path();
+        $snippet_storage_display = $snippet_storage_path;
+
+        if ( defined( 'ABSPATH' ) ) {
+            $normalized_base = wp_normalize_path( ABSPATH );
+            $normalized_path = wp_normalize_path( $snippet_storage_path );
+
+            if ( 0 === strpos( $normalized_path, $normalized_base ) ) {
+                $relative = ltrim( substr( $normalized_path, strlen( $normalized_base ) ), '/' );
+                if ( ! empty( $relative ) ) {
+                    $snippet_storage_display = $relative;
+                }
             }
         }
 
