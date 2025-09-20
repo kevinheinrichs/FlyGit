@@ -18,12 +18,20 @@ class FlyGit_Admin {
     protected $installer;
 
     /**
+     * Snippet manager instance.
+     *
+     * @var FlyGit_Snippet_Manager
+     */
+    protected $snippets;
+
+    /**
      * Constructor.
      *
      * @param FlyGit_Installer $installer Installer instance.
      */
-    public function __construct( FlyGit_Installer $installer ) {
+    public function __construct( FlyGit_Installer $installer, FlyGit_Snippet_Manager $snippets ) {
         $this->installer = $installer;
+        $this->snippets  = $snippets;
     }
 
     /**
@@ -118,10 +126,73 @@ class FlyGit_Admin {
 
         $secret = isset( $_POST['webhook_secret'] ) ? sanitize_text_field( wp_unslash( $_POST['webhook_secret'] ) ) : '';
 
-        $result = $this->installer->update_installation(
+        $installation = $this->installer->get_installation_by_id( $installation_id );
+        if ( $installation ) {
+            $result = $this->installer->update_installation(
+                $installation_id,
+                array(
+                    'webhook_secret' => $secret,
+                )
+            );
+
+            if ( is_wp_error( $result ) ) {
+                $this->redirect_with_message( 'error', $result->get_error_message() );
+            }
+
+            $this->redirect_with_message( 'success', __( 'Webhook settings saved.', 'flygit' ) );
+        }
+
+        $snippet_installation = $this->snippets->get_installation_by_id( $installation_id );
+        if ( $snippet_installation ) {
+            $result = $this->snippets->update_installation(
+                $installation_id,
+                array(
+                    'webhook_secret' => $secret,
+                )
+            );
+
+            if ( is_wp_error( $result ) ) {
+                $this->redirect_with_message( 'error', $result->get_error_message() );
+            }
+
+            $this->redirect_with_message( 'success', __( 'Webhook settings saved.', 'flygit' ) );
+        }
+
+        $this->redirect_with_message( 'error', __( 'The requested installation could not be found.', 'flygit' ) );
+    }
+
+    /**
+     * Handle snippet settings updates submitted from the dashboard.
+     */
+    public function handle_snippet_settings_request() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have permission to perform this action.', 'flygit' ) );
+        }
+
+        check_admin_referer( 'flygit_snippet_settings' );
+
+        $installation_id = isset( $_POST['installation_id'] ) ? sanitize_text_field( wp_unslash( $_POST['installation_id'] ) ) : '';
+
+        if ( empty( $installation_id ) ) {
+            $this->redirect_with_message( 'error', __( 'Invalid snippet settings request. Please try again.', 'flygit' ) );
+        }
+
+        $name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( '' === $name ) {
+            $this->redirect_with_message( 'error', __( 'Please provide a name for the snippet repository.', 'flygit' ) );
+        }
+
+        $snippet_installation = $this->snippets->get_installation_by_id( $installation_id );
+
+        if ( ! $snippet_installation ) {
+            $this->redirect_with_message( 'error', __( 'The requested snippet installation could not be found.', 'flygit' ) );
+        }
+
+        $result = $this->snippets->update_installation(
             $installation_id,
             array(
-                'webhook_secret' => $secret,
+                'name' => $name,
             )
         );
 
@@ -129,7 +200,7 @@ class FlyGit_Admin {
             $this->redirect_with_message( 'error', $result->get_error_message() );
         }
 
-        $this->redirect_with_message( 'success', __( 'Webhook settings saved.', 'flygit' ) );
+        $this->redirect_with_message( 'success', __( 'Snippet repository name saved.', 'flygit' ) );
     }
 
     /**
@@ -148,7 +219,52 @@ class FlyGit_Admin {
             $this->redirect_with_message( 'error', __( 'Invalid uninstall request. Please try again.', 'flygit' ) );
         }
 
-        $result = $this->installer->uninstall_installation( $installation_id );
+        $installation = $this->installer->get_installation_by_id( $installation_id );
+        if ( $installation ) {
+            $result = $this->installer->uninstall_installation( $installation_id );
+
+            if ( is_wp_error( $result ) ) {
+                $this->redirect_with_message( 'error', $result->get_error_message() );
+            }
+
+            $this->redirect_with_message( 'success', $result );
+        }
+
+        $snippet_installation = $this->snippets->get_installation_by_id( $installation_id );
+        if ( $snippet_installation ) {
+            $result = $this->snippets->uninstall_installation( $installation_id );
+
+            if ( is_wp_error( $result ) ) {
+                $this->redirect_with_message( 'error', $result->get_error_message() );
+            }
+
+            $this->redirect_with_message( 'success', $result );
+        }
+
+        $this->redirect_with_message( 'error', __( 'The requested installation could not be found.', 'flygit' ) );
+    }
+
+    /**
+     * Handle snippet import submissions.
+     */
+    public function handle_snippet_import_request() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have permission to perform this action.', 'flygit' ) );
+        }
+
+        check_admin_referer( 'flygit_import_snippet' );
+
+        $installation_id = isset( $_POST['installation_id'] ) ? sanitize_text_field( wp_unslash( $_POST['installation_id'] ) ) : '';
+        $repository      = isset( $_POST['repository_url'] ) ? esc_url_raw( wp_unslash( $_POST['repository_url'] ) ) : '';
+        $branch          = isset( $_POST['branch'] ) ? sanitize_text_field( wp_unslash( $_POST['branch'] ) ) : 'main';
+        $access_token    = isset( $_POST['access_token'] ) ? sanitize_text_field( wp_unslash( $_POST['access_token'] ) ) : '';
+        $name            = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( ! empty( $installation_id ) ) {
+            $result = $this->snippets->import_installation( $installation_id, $repository, $branch, $access_token, $name );
+        } else {
+            $result = $this->snippets->import_from_repository( $repository, '', $branch, $access_token, $name );
+        }
 
         if ( is_wp_error( $result ) ) {
             $this->redirect_with_message( 'error', $result->get_error_message() );
@@ -168,6 +284,7 @@ class FlyGit_Admin {
         $all_themes      = wp_get_themes();
         $all_plugins     = get_plugins();
         $installations   = $this->installer->get_installations();
+        $snippet_records = $this->snippets->get_installations();
         $active_plugins  = get_option( 'active_plugins', array() );
         $current_theme   = wp_get_theme();
         $status          = isset( $_GET['flygit_status'] ) ? sanitize_key( wp_unslash( $_GET['flygit_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -203,11 +320,6 @@ class FlyGit_Admin {
                 }
             }
         }
-
-        $installed_count = array(
-            'themes'  => count( $themes ),
-            'plugins' => count( $plugins ),
-        );
 
         $theme_installations_map  = array();
         $plugin_installations_map = array();
@@ -255,6 +367,59 @@ class FlyGit_Admin {
                 }
             } else {
                 continue;
+            }
+        }
+
+        $snippet_installations = array();
+        foreach ( $snippet_records as $snippet ) {
+            if ( empty( $snippet['id'] ) ) {
+                continue;
+            }
+
+            $files   = isset( $snippet['files'] ) && is_array( $snippet['files'] ) ? $snippet['files'] : array();
+            $sources = isset( $snippet['sources'] ) && is_array( $snippet['sources'] ) ? $snippet['sources'] : array();
+
+            $snippet_installations[] = array(
+                'id'             => $snippet['id'],
+                'type'           => 'snippet',
+                'slug'           => isset( $snippet['slug'] ) ? $snippet['slug'] : '',
+                'name'           => ! empty( $snippet['name'] ) ? $snippet['name'] : ( isset( $snippet['slug'] ) ? $snippet['slug'] : __( 'Snippet Repository', 'flygit' ) ),
+                'repository_url' => isset( $snippet['repository_url'] ) ? $snippet['repository_url'] : '',
+                'branch'         => isset( $snippet['branch'] ) ? $snippet['branch'] : 'main',
+                'webhook_secret' => isset( $snippet['webhook_secret'] ) ? $snippet['webhook_secret'] : '',
+                'files'          => $files,
+                'sources'        => $sources,
+                'file_count'     => count( $files ),
+                'last_import'    => ( isset( $snippet['last_import'] ) && $snippet['last_import'] ) ? wp_date( 'Y-m-d H:i:s', (int) $snippet['last_import'] ) : '',
+                'webhook_url'    => rest_url( sprintf( 'flygit/v1/installations/%s/webhook', $snippet['id'] ) ),
+            );
+        }
+
+        $installed_count = array(
+            'themes'   => count( $themes ),
+            'plugins'  => count( $plugins ),
+            'snippets' => count( $snippet_installations ),
+        );
+
+        $code_snippet_error   = '';
+        $code_snippets        = $this->snippets->get_snippets();
+        if ( is_wp_error( $code_snippets ) ) {
+            $code_snippet_error = $code_snippets->get_error_message();
+            $code_snippets      = array();
+        }
+
+        $snippet_storage_path    = $this->snippets->get_storage_directory_path();
+        $snippet_storage_display = $snippet_storage_path;
+
+        if ( defined( 'ABSPATH' ) ) {
+            $normalized_base = wp_normalize_path( ABSPATH );
+            $normalized_path = wp_normalize_path( $snippet_storage_path );
+
+            if ( 0 === strpos( $normalized_path, $normalized_base ) ) {
+                $relative = ltrim( substr( $normalized_path, strlen( $normalized_base ) ), '/' );
+                if ( ! empty( $relative ) ) {
+                    $snippet_storage_display = $relative;
+                }
             }
         }
 

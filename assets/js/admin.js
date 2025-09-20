@@ -3,8 +3,13 @@
 
     function copyToClipboard(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text);
-            return true;
+            return navigator.clipboard.writeText(text)
+                .then(function () {
+                    return true;
+                })
+                .catch(function () {
+                    return false;
+                });
         }
 
         var textarea = document.createElement('textarea');
@@ -15,14 +20,17 @@
         textarea.focus();
         textarea.select();
 
+        var successful = false;
+
         try {
-            var successful = document.execCommand('copy');
-            document.body.removeChild(textarea);
-            return successful;
+            successful = document.execCommand('copy');
         } catch (err) {
-            document.body.removeChild(textarea);
-            return false;
+            successful = false;
         }
+
+        document.body.removeChild(textarea);
+
+        return successful;
     }
 
     $(document).on('click', '.flygit-copy', function (event) {
@@ -34,15 +42,27 @@
         }
 
         var text = target.innerText || target.textContent;
-        var copied = copyToClipboard(text);
+        var button = $(this);
+        var originalText = button.text();
 
-        if (copied) {
-            var originalText = $(this).text();
-            $(this).text(flygitAdmin.copySuccess || 'Copied');
-            var button = $(this);
+        var handleResult = function (copied) {
+            if (!copied) {
+                return;
+            }
+
+            button.text(flygitAdmin.copySuccess || 'Copied');
+
             setTimeout(function () {
                 button.text(originalText);
             }, 2000);
+        };
+
+        var result = copyToClipboard(text);
+
+        if (result && typeof result.then === 'function') {
+            result.then(handleResult);
+        } else {
+            handleResult(result);
         }
     });
 })(jQuery);
