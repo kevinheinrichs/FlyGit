@@ -59,11 +59,6 @@ class FlyGit_Snippet_Manager {
             return $storage_dir;
         }
 
-        $file_name = $this->generate_prefixed_filename( $storage_dir, $file_name );
-        if ( is_wp_error( $file_name ) ) {
-            return $file_name;
-        }
-
         $header = $this->generate_snippet_header( $file_name );
         $code   = $this->normalize_snippet_content( $content );
 
@@ -161,49 +156,6 @@ class FlyGit_Snippet_Manager {
         }
 
         return $directory;
-    }
-
-    /**
-     * Generate the next numbered filename for a snippet.
-     *
-     * @param string $directory           Absolute path to the storage directory.
-     * @param string $original_file_name  Original sanitized filename.
-     *
-     * @return string|WP_Error
-     */
-    protected function generate_prefixed_filename( $directory, $original_file_name ) {
-        $base_name = preg_replace( '/^\d+-/', '', $original_file_name );
-        if ( '' === $base_name ) {
-            $base_name = $original_file_name;
-        }
-
-        $pattern = trailingslashit( $directory ) . '*.php';
-        $files   = glob( $pattern );
-
-        if ( false === $files ) {
-            return new WP_Error( 'flygit_snippet_unable_to_scan_directory', __( 'Unable to scan the snippet storage directory for existing files.', 'flygit' ) );
-        }
-
-        $highest_number = 0;
-
-        foreach ( $files as $file ) {
-            $existing_file = basename( $file );
-            if ( preg_match( '/^(\d+)-/', $existing_file, $matches ) ) {
-                $number = absint( $matches[1] );
-                if ( $number > $highest_number ) {
-                    $highest_number = $number;
-                }
-            }
-        }
-
-        $next_number = $highest_number + 1;
-        $prefixed    = sanitize_file_name( $next_number . '-' . $base_name );
-
-        if ( '' === $prefixed ) {
-            return new WP_Error( 'flygit_snippet_invalid_generated_filename', __( 'Unable to generate a valid filename for the snippet.', 'flygit' ) );
-        }
-
-        return $prefixed;
     }
 
     /**
