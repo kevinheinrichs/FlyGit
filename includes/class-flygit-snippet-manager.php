@@ -706,7 +706,7 @@ class FlyGit_Snippet_Manager {
         $timestamp    = current_time( 'mysql' );
 
         $header = sprintf(
-            "<?php\n// <Internal Doc Start>\n/*\n*\n* @description: \n* @tags: \n* @group: \n* @name: FlyGit %1\$s\n* @type: PHP\n* @status: draft\n* @created_by: 1\n* @created_at: %2\$s\n* @updated_at: \n* @is_valid: 1\n* @updated_by: 1\n* @priority: 10\n* @run_at: all\n* @load_as_file: \n* @condition: {\"status\":\"no\",\"run_if\":\"assertive\",\"items\":[[]]}\n*/\n?>\n<?php if (!defined(\"ABSPATH\")) { return;} // <Internal Doc End> ?>\n<?php",
+            "<?php\n// <Internal Doc Start>\n/*\n*\n* @description: \n* @tags: \n* @group: \n* @name: FlyGit %1\$s\n* @type: PHP\n* @status: draft\n* @created_by: 1\n* @created_at: %2\$s\n* @updated_at: \n* @is_valid: 1\n* @updated_by: 1\n* @priority: 10\n* @run_at: all\n* @load_as_file: \n* @condition: {\"status\":\"no\",\"run_if\":\"assertive\",\"items\":[[]]}\n*/\n?>\n<?php if (!defined(\"ABSPATH\")) { return;} // <Internal Doc End> ?>\n\n",
             $display_name,
             $timestamp
         );
@@ -758,13 +758,7 @@ class FlyGit_Snippet_Manager {
         }
 
         $header = substr( $content, 0, $closing_tag_pos + 2 );
-        $after  = substr( $content, $closing_tag_pos + 2 );
-
-        if ( preg_match( '/^\s*<\?php(?:\s*\/\/[^\n]*)?\s*/', $after, $matches ) ) {
-            $header .= $matches[0];
-        } else {
-            $header = rtrim( $header, "\r\n" ) . "\n<?php\n";
-        }
+        $header = rtrim( $header, "\r\n" ) . "\n\n";
 
         return $header;
     }
@@ -798,7 +792,7 @@ class FlyGit_Snippet_Manager {
     }
 
     /**
-     * Normalize snippet content by removing PHP opening/closing tags and trimming whitespace.
+     * Normalize snippet content by trimming whitespace and removing trailing PHP closing tags.
      *
      * @param string $content Raw snippet content.
      *
@@ -811,14 +805,6 @@ class FlyGit_Snippet_Manager {
 
         $content = preg_replace( '/^\xEF\xBB\xBF/', '', $content );
         $content = ltrim( $content );
-
-        if ( 0 === strpos( $content, '<?php' ) ) {
-            $content = substr( $content, 5 );
-            $content = ltrim( $content, " \t\n\r\0\x0B" );
-        } elseif ( 0 === strpos( $content, '<?' ) ) {
-            $content = substr( $content, 2 );
-            $content = ltrim( $content, " \t\n\r\0\x0B" );
-        }
 
         $content = preg_replace( '/\?>\s*$/', '', $content );
 
