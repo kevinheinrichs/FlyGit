@@ -2,7 +2,7 @@
 
 FlyGit is a WordPress admin plugin that lets you install and maintain themes or plugins directly from Git repositories without leaving the WordPress dashboard.
 
-**Current version:** 1.0.1
+**Current version:** 11.0
 
 ## Table of contents
 
