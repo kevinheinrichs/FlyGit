@@ -76,6 +76,8 @@ class FlyGit_Snippet_Manager {
 
         $message = sprintf( __( 'Snippet "%s" imported successfully.', 'flygit' ), $file_name );
 
+        do_action( 'fluent_snippets/rebuild_index', $file_name, true );
+
         return $message;
     }
 
