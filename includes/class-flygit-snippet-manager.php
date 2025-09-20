@@ -339,14 +339,9 @@ class FlyGit_Snippet_Manager {
 
             $storage_filename = $this->generate_storage_filename( $slug, $file['relative_path'], $written_files, $existing_sources );
             $target_path      = trailingslashit( $storage_dir ) . $storage_filename;
-            $header           = $this->generate_snippet_header( $storage_filename );
+            $header           = $this->resolve_snippet_header( $target_path, $storage_filename );
             $code             = $this->normalize_snippet_content( $content );
-
-            $final_content = $header;
-            if ( '' !== $code ) {
-                $final_content .= "\n" . $code;
-            }
-            $final_content .= "\n";
+            $final_content    = $this->build_snippet_file_contents( $header, $code );
 
             if ( false === file_put_contents( $target_path, $final_content ) ) { // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
                 $this->cleanup_created_files( $written_files );
@@ -717,6 +712,89 @@ class FlyGit_Snippet_Manager {
         );
 
         return $header;
+    }
+
+    /**
+     * Determine the snippet header to use when writing a file.
+     *
+     * @param string $target_path  Destination file path.
+     * @param string $storage_file Generated storage file name.
+     *
+     * @return string
+     */
+    protected function resolve_snippet_header( $target_path, $storage_file ) {
+        if ( file_exists( $target_path ) ) {
+            $existing_content = file_get_contents( $target_path );
+
+            if ( false !== $existing_content ) {
+                $existing_header = $this->extract_internal_doc_header( $existing_content );
+
+                if ( null !== $existing_header ) {
+                    return $existing_header;
+                }
+            }
+        }
+
+        return $this->generate_snippet_header( $storage_file );
+    }
+
+    /**
+     * Extract the internal documentation header from existing snippet contents.
+     *
+     * @param string $content Snippet file contents.
+     *
+     * @return string|null
+     */
+    protected function extract_internal_doc_header( $content ) {
+        $marker_pos = strpos( $content, '// <Internal Doc End>' );
+
+        if ( false === $marker_pos ) {
+            return null;
+        }
+
+        $closing_tag_pos = strpos( $content, '?>', $marker_pos );
+        if ( false === $closing_tag_pos ) {
+            return null;
+        }
+
+        $header = substr( $content, 0, $closing_tag_pos + 2 );
+        $after  = substr( $content, $closing_tag_pos + 2 );
+
+        if ( preg_match( '/^\s*<\?php(?:\s*\/\/[^\n]*)?\s*/', $after, $matches ) ) {
+            $header .= $matches[0];
+        } else {
+            $header = rtrim( $header, "\r\n" ) . "\n<?php\n";
+        }
+
+        return $header;
+    }
+
+    /**
+     * Combine a snippet header and code into the final file contents.
+     *
+     * @param string $header Header contents.
+     * @param string $code   Normalized snippet code.
+     *
+     * @return string
+     */
+    protected function build_snippet_file_contents( $header, $code ) {
+        $final_content = $header;
+
+        if ( '' !== $code ) {
+            if ( ! preg_match( '/\r?\n$/', $final_content ) ) {
+                $final_content .= "\n";
+            }
+
+            $final_content .= $code;
+
+            if ( ! preg_match( '/\r?\n$/', $final_content ) ) {
+                $final_content .= "\n";
+            }
+        } elseif ( ! preg_match( '/\r?\n$/', $final_content ) ) {
+            $final_content .= "\n";
+        }
+
+        return $final_content;
     }
 
     /**
