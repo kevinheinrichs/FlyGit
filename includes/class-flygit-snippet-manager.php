@@ -703,17 +703,33 @@ class FlyGit_Snippet_Manager {
      * @return string
      */
     protected function generate_snippet_header( $file_name, $relative_path = '' ) {
-        $display_name = pathinfo( $file_name, PATHINFO_FILENAME );
-        $timestamp    = current_time( 'mysql' );
+        $timestamp = current_time( 'mysql' );
 
-        $relative_basename = '' !== $relative_path ? strtolower( basename( $relative_path ) ) : '';
+        $name_source = '';
 
-        if ( 'demo.php' === $relative_basename ) {
-            $name = 'Demo';
-        } elseif ( preg_match( '/(^|-)uptime-kuma$/i', $display_name ) ) {
-            $name = 'Uptime Kuma';
+        if ( '' !== $relative_path ) {
+            $name_source = pathinfo( $relative_path, PATHINFO_FILENAME );
+        }
+
+        if ( '' === $name_source ) {
+            $name_source = pathinfo( $file_name, PATHINFO_FILENAME );
+        }
+
+        $name_source = preg_replace( '/^' . preg_quote( self::STORAGE_PREFIX, '/' ) . '/i', '', $name_source );
+        $name_source = str_replace( array( '-', '_' ), ' ', $name_source );
+        $name_source = preg_replace( '/(?<=\p{Ll})(?=\p{Lu})/u', ' ', $name_source );
+        $name_source = trim( preg_replace( '/\s+/', ' ', $name_source ) );
+
+        if ( '' === $name_source ) {
+            $name = __( 'Snippet', 'flygit' );
+        } elseif ( strtolower( $name_source ) === $name_source ) {
+            if ( function_exists( 'mb_convert_case' ) ) {
+                $name = mb_convert_case( $name_source, MB_CASE_TITLE, 'UTF-8' );
+            } else {
+                $name = ucwords( strtolower( $name_source ) );
+            }
         } else {
-            $name = 'FlyGit ' . $display_name;
+            $name = $name_source;
         }
 
         $header = sprintf(
