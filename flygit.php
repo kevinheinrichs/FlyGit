@@ -4,10 +4,20 @@
  * Plugin URI: https://github.com/kevinheinrichs/FlyGit/
  * Description: Install themes and plugins from public and private Git repositories directly within WordPress.
  * Version: 1.1.0
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
  * Author: Kevin Heinrichs
  * Author URI: https://www.kevinheinrichs.com/
  * Text Domain: flygit
  * Domain Path: /languages
+ */
+
+/**
+ * Main plugin bootstrap file.
+ *
+ * @package FlyGit
+ * @since 1.0.0
+ * @version 1.1.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
