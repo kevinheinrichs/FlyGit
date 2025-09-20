@@ -1,0 +1,292 @@
+.flygit-dashboard {
+    max-width: 1200px;
+}
+
+.flygit-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 24px;
+    margin-top: 24px;
+    margin-bottom: 32px;
+}
+
+.flygit-section {
+    background: #ffffff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.flygit-section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #dcdcde;
+}
+
+.flygit-section-header h2 {
+    margin: 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.flygit-badge {
+    background: #2271b1;
+    color: #fff;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+}
+
+.flygit-list {
+    padding: 0 20px;
+}
+
+.flygit-item {
+    border-bottom: 1px solid #dcdcde;
+    padding: 14px 0;
+}
+
+.flygit-item:last-of-type {
+    border-bottom: none;
+}
+
+.flygit-item summary {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    list-style: none;
+}
+
+.flygit-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.flygit-item-title {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.flygit-item-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 13px;
+    color: #50575e;
+    align-items: center;
+}
+
+.flygit-status {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.flygit-status-active {
+    background: #d1f2c7;
+    color: #207227;
+}
+
+.flygit-status-inactive {
+    background: #f2dada;
+    color: #842029;
+}
+
+.flygit-item-body {
+    margin-top: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-description {
+    margin: 0;
+    color: #2c3338;
+}
+
+.flygit-meta {
+    margin: 0;
+    padding-left: 18px;
+    color: #50575e;
+    font-size: 13px;
+}
+
+.flygit-meta li {
+    margin-bottom: 4px;
+}
+
+.flygit-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.flygit-inline-form {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+
+.flygit-inline-form button {
+    margin: 0;
+}
+
+.flygit-action-link {
+    display: inline-flex;
+}
+
+.flygit-action-link a {
+    margin: 0;
+}
+
+.flygit-actions .button.disabled {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.flygit-section-footer {
+    border-top: 1px solid #dcdcde;
+    padding: 16px 20px;
+    display: grid;
+    gap: 12px;
+    background: #f6f7f7;
+}
+
+.flygit-form {
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-form label {
+    display: grid;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.flygit-form input,
+.flygit-form textarea {
+    width: 100%;
+}
+
+.flygit-installation-settings {
+    border-top: 1px solid #dcdcde;
+    padding-top: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-installation-settings h4 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.flygit-installation-webhook {
+    display: grid;
+    gap: 8px;
+}
+
+.flygit-installation-subtitle {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1d2327;
+}
+
+.flygit-button-danger {
+    background: #b32d2e;
+    border-color: #b32d2e;
+    color: #fff;
+}
+
+.flygit-button-danger:hover,
+.flygit-button-danger:focus {
+    background: #8a2424;
+    border-color: #8a2424;
+    color: #fff;
+}
+
+.flygit-webhook-content {
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+}
+
+.flygit-webhook-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.flygit-webhook-list {
+    display: grid;
+    gap: 16px;
+}
+
+.flygit-webhook-card {
+    background: #ffffff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.flygit-webhook-card-header {
+    margin: 0;
+}
+
+.flygit-webhook-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.flygit-webhook-meta {
+    margin: 6px 0 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.flygit-webhook-body {
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-webhook-endpoint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f0f0f1;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    padding: 8px 10px;
+}
+
+.flygit-webhook-endpoint code {
+    flex: 1;
+    word-break: break-all;
+}
+
+.flygit-section pre {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    padding: 12px;
+    border-radius: 4px;
+    overflow: auto;
+    margin: 0;
+}
+
+@media (max-width: 782px) {
+    .flygit-item summary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
