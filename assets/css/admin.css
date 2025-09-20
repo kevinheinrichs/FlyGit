@@ -20,6 +20,10 @@
     min-height: 100%;
 }
 
+.flygit-snippets-section {
+    margin-top: 32px;
+}
+
 .flygit-section-header {
     padding: 16px 20px;
     border-bottom: 1px solid #dcdcde;
@@ -177,6 +181,67 @@
     padding-top: 12px;
     display: grid;
     gap: 12px;
+}
+
+.flygit-snippets-body {
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+}
+
+.flygit-snippet-form .description {
+    margin: 0;
+}
+
+.flygit-snippets-list {
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-snippet-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.flygit-snippet-item {
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    background: #f6f7f7;
+    padding: 12px 16px;
+    display: grid;
+    gap: 6px;
+}
+
+.flygit-snippet-title {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.flygit-snippet-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: #50575e;
+}
+
+.flygit-snippet-meta span {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.flygit-snippet-description {
+    margin: 0;
+    color: #2c3338;
+}
+
+.flygit-snippets-path-alt {
+    margin-left: 4px;
+    color: #50575e;
+    font-size: 12px;
 }
 
 .flygit-installation-settings h4 {

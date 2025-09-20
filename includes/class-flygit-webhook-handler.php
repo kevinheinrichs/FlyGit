@@ -18,12 +18,21 @@ class FlyGit_Webhook_Handler {
     protected $installer;
 
     /**
+     * Snippet manager instance.
+     *
+     * @var FlyGit_Snippet_Manager
+     */
+    protected $snippets;
+
+    /**
      * Constructor.
      *
-     * @param FlyGit_Installer $installer Installer instance.
+     * @param FlyGit_Installer       $installer Installer instance.
+     * @param FlyGit_Snippet_Manager $snippets  Snippet manager instance.
      */
-    public function __construct( FlyGit_Installer $installer ) {
+    public function __construct( FlyGit_Installer $installer, FlyGit_Snippet_Manager $snippets ) {
         $this->installer = $installer;
+        $this->snippets  = $snippets;
     }
 
     /**
@@ -56,6 +65,12 @@ class FlyGit_Webhook_Handler {
         }
 
         $installation = $this->installer->get_installation_by_id( $installation_id );
+        $is_snippet   = false;
+
+        if ( empty( $installation ) ) {
+            $installation = $this->snippets->get_installation_by_id( $installation_id );
+            $is_snippet   = ! empty( $installation );
+        }
 
         if ( empty( $installation ) ) {
             return new WP_Error( 'flygit_installation_not_found', __( 'The requested installation does not exist.', 'flygit' ), array( 'status' => 404 ) );
@@ -66,9 +81,7 @@ class FlyGit_Webhook_Handler {
             return new WP_Error( 'flygit_invalid_secret', __( 'Invalid webhook secret.', 'flygit' ), array( 'status' => 403 ) );
         }
 
-        if ( empty( $installation['type'] ) || empty( $installation['repository_url'] ) ) {
-            return new WP_Error( 'flygit_missing_repository', __( 'The installation is missing repository details.', 'flygit' ), array( 'status' => 400 ) );
-        }
+        $type = isset( $installation['type'] ) ? $installation['type'] : ( $is_snippet ? 'snippet' : '' );
 
         $params = $request->get_json_params();
         if ( ! is_array( $params ) ) {
@@ -79,11 +92,27 @@ class FlyGit_Webhook_Handler {
         $branch         = isset( $params['branch'] ) ? $params['branch'] : $request->get_param( 'branch' );
         $access_token   = isset( $params['access_token'] ) ? $params['access_token'] : $request->get_param( 'access_token' );
 
-        $repository_url = ! empty( $repository_url ) ? esc_url_raw( $repository_url ) : $installation['repository_url'];
-        $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : ( isset( $installation['branch'] ) ? $installation['branch'] : 'main' );
-        $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : ( isset( $installation['access_token'] ) ? $installation['access_token'] : '' );
+        if ( 'snippet' === $type ) {
+            $repository_url = ! empty( $repository_url ) ? esc_url_raw( $repository_url ) : ( isset( $installation['repository_url'] ) ? $installation['repository_url'] : '' );
+            $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : ( isset( $installation['branch'] ) ? $installation['branch'] : 'main' );
+            $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : ( isset( $installation['access_token'] ) ? $installation['access_token'] : '' );
 
-        $result = $this->installer->install_from_repository( $installation['type'], $repository_url, $branch, $access_token );
+            if ( empty( $repository_url ) ) {
+                return new WP_Error( 'flygit_missing_repository', __( 'The installation is missing repository details.', 'flygit' ), array( 'status' => 400 ) );
+            }
+
+            $result = $this->snippets->import_installation( $installation['id'], $repository_url, $branch, $access_token );
+        } else {
+            if ( empty( $installation['repository_url'] ) && empty( $repository_url ) ) {
+                return new WP_Error( 'flygit_missing_repository', __( 'The installation is missing repository details.', 'flygit' ), array( 'status' => 400 ) );
+            }
+
+            $repository_url = ! empty( $repository_url ) ? esc_url_raw( $repository_url ) : $installation['repository_url'];
+            $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : ( isset( $installation['branch'] ) ? $installation['branch'] : 'main' );
+            $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : ( isset( $installation['access_token'] ) ? $installation['access_token'] : '' );
+
+            $result = $this->installer->install_from_repository( $type, $repository_url, $branch, $access_token );
+        }
 
         if ( is_wp_error( $result ) ) {
             return new WP_Error( 'flygit_webhook_failed', $result->get_error_message(), array( 'status' => 500 ) );

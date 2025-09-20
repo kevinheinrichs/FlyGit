@@ -24,6 +24,7 @@ require_once ABSPATH . 'wp-admin/includes/theme.php';
 require_once ABSPATH . 'wp-admin/includes/file.php';
 
 require_once FLYGIT_PLUGIN_DIR . 'includes/class-flygit-installer.php';
+require_once FLYGIT_PLUGIN_DIR . 'includes/class-flygit-snippet-manager.php';
 require_once FLYGIT_PLUGIN_DIR . 'includes/class-flygit-admin.php';
 require_once FLYGIT_PLUGIN_DIR . 'includes/class-flygit-webhook-handler.php';
 
@@ -32,10 +33,12 @@ require_once FLYGIT_PLUGIN_DIR . 'includes/class-flygit-webhook-handler.php';
  */
 function flygit_init() {
     $installer = new FlyGit_Installer();
-    $admin     = new FlyGit_Admin( $installer );
-    $webhook   = new FlyGit_Webhook_Handler( $installer );
+    $snippets  = new FlyGit_Snippet_Manager();
+    $admin     = new FlyGit_Admin( $installer, $snippets );
+    $webhook   = new FlyGit_Webhook_Handler( $installer, $snippets );
 
     $GLOBALS['flygit_installer'] = $installer;
+    $GLOBALS['flygit_snippets']  = $snippets;
     $GLOBALS['flygit_admin']     = $admin;
     $GLOBALS['flygit_webhook']   = $webhook;
 
@@ -43,6 +46,8 @@ function flygit_init() {
     add_action( 'admin_post_flygit_install', array( $admin, 'handle_install_request' ) );
     add_action( 'admin_post_flygit_save_webhook_settings', array( $admin, 'handle_webhook_settings' ) );
     add_action( 'admin_post_flygit_uninstall', array( $admin, 'handle_uninstall_request' ) );
+    add_action( 'admin_post_flygit_import_snippet', array( $admin, 'handle_snippet_import_request' ) );
+    add_action( 'admin_post_flygit_update_snippet_settings', array( $admin, 'handle_snippet_settings_request' ) );
     add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_assets' ) );
 
     add_action( 'rest_api_init', array( $webhook, 'register_routes' ) );
