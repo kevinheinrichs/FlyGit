@@ -13,6 +13,7 @@ FlyGit is a WordPress admin plugin that lets you install and manage themes or pl
   - [Webhook automation](#webhook-automation)
   - [Managing existing installs](#managing-existing-installs)
 - [Development notes](#development-notes)
+- [Version history](#version-history)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
@@ -81,6 +82,17 @@ Use the **Copy** button next to the webhook URL in the dashboard to avoid typos.
 - Webhook processing is managed by `includes/class-flygit-webhook-handler.php` and registers REST routes under `flygit/v1`.
 
 When contributing code, follow WordPress coding standards and make sure PHP files remain lint-free.
+
+## Version history
+
+### 1.1.0
+
+- Exposes explicit WordPress (6.0+) and PHP (7.4+) requirements in the plugin metadata.
+- Updates this documentation to reflect the 1.1.0 release.
+
+### 1.0.0
+
+- Initial public release of FlyGit with Git-powered theme and plugin installs, webhook automation, and dashboard management tools.
 
 ## Troubleshooting
 
