@@ -3,7 +3,7 @@
  * Plugin Name: FlyGit
  * Plugin URI: https://github.com/kevinheinrichs/FlyGit/
  * Description: Install themes and plugins from public and private Git repositories directly within WordPress.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Kevin Heinrichs
  * Author URI: https://www.kevinheinrichs.com/
  * Text Domain: flygit
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly.
 }
 
-define( 'FLYGIT_VERSION', '1.0.0' );
+define( 'FLYGIT_VERSION', '1.0.1' );
 define( 'FLYGIT_PLUGIN_FILE', __FILE__ );
 define( 'FLYGIT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FLYGIT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
