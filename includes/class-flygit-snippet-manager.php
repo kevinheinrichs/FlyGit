@@ -758,7 +758,7 @@ class FlyGit_Snippet_Manager {
         }
 
         $header = substr( $content, 0, $closing_tag_pos + 2 );
-        $header = rtrim( $header, "\r\n" ) . "\n\n";
+        $header = rtrim( $header, "\r\n" ) . "\n";
 
         return $header;
     }
