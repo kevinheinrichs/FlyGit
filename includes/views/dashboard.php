@@ -333,49 +333,114 @@
 
 <section class="flygit-section flygit-snippets-section">
     <header class="flygit-section-header">
-        <h2><?php esc_html_e( 'Code Snippets', 'flygit' ); ?></h2>
+        <h2>
+            <?php esc_html_e( 'Installed Snippet Repositories', 'flygit' ); ?>
+            <span class="flygit-badge"><?php echo esc_html( isset( $installed_count['snippets'] ) ? $installed_count['snippets'] : 0 ); ?></span>
+        </h2>
     </header>
     <div class="flygit-snippets-body">
         <p class="description">
-            <?php esc_html_e( 'Import reusable PHP snippets directly from GitHub repositories. Imported snippets are stored in:', 'flygit' ); ?>
+            <?php esc_html_e( 'Import reusable PHP snippets directly from Git repositories. Imported snippets are stored in:', 'flygit' ); ?>
             <code><?php echo esc_html( $snippet_storage_display ); ?></code>
             <?php if ( $snippet_storage_display !== $snippet_storage_path ) : ?>
                 <span class="flygit-snippets-path-alt">(<?php echo esc_html( $snippet_storage_path ); ?>)</span>
             <?php endif; ?>
         </p>
 
-        <form class="flygit-form flygit-snippet-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
-            <input type="hidden" name="action" value="flygit_import_snippet" />
+        <div class="flygit-list">
+            <?php if ( ! empty( $snippet_installations ) ) : ?>
+                <?php foreach ( $snippet_installations as $snippet_installation ) : ?>
+                    <?php
+                    $snippet_files   = isset( $snippet_installation['files'] ) && is_array( $snippet_installation['files'] ) ? $snippet_installation['files'] : array();
+                    $snippet_sources = isset( $snippet_installation['sources'] ) && is_array( $snippet_installation['sources'] ) ? $snippet_installation['sources'] : array();
+                    $snippet_count   = isset( $snippet_installation['file_count'] ) ? (int) $snippet_installation['file_count'] : count( $snippet_files );
+                    $snippet_last    = isset( $snippet_installation['last_import'] ) ? $snippet_installation['last_import'] : '';
+                    $snippet_uninstall_label = ! empty( $snippet_installation['name'] ) ? $snippet_installation['name'] : $snippet_installation['id'];
+                    $snippet_uninstall_message = sprintf( esc_html__( 'Are you sure you want to uninstall the snippet repository "%s"?', 'flygit' ), $snippet_uninstall_label );
+                    $snippet_webhook_element_id = 'flygit-webhook-url-' . sanitize_html_class( $snippet_installation['id'] );
+                    ?>
+                    <details class="flygit-item">
+                        <summary>
+                            <span class="flygit-item-title"><?php echo esc_html( $snippet_installation['name'] ); ?></span>
+                            <span class="flygit-item-meta">
+                                <span><?php printf( esc_html__( '%d files', 'flygit' ), $snippet_count ); ?></span>
+                                <?php if ( ! empty( $snippet_last ) ) : ?>
+                                    <span><?php printf( esc_html__( 'Last import: %s', 'flygit' ), esc_html( $snippet_last ) ); ?></span>
+                                <?php endif; ?>
+                            </span>
+                        </summary>
+                        <div class="flygit-item-body">
+                            <ul class="flygit-meta">
+                                <?php if ( ! empty( $snippet_installation['repository_url'] ) ) : ?>
+                                    <li><strong><?php esc_html_e( 'Repository:', 'flygit' ); ?></strong> <a href="<?php echo esc_url( $snippet_installation['repository_url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $snippet_installation['repository_url'] ); ?></a></li>
+                                <?php endif; ?>
+                                <?php if ( ! empty( $snippet_installation['branch'] ) ) : ?>
+                                    <li><strong><?php esc_html_e( 'Branch:', 'flygit' ); ?></strong> <?php echo esc_html( $snippet_installation['branch'] ); ?></li>
+                                <?php endif; ?>
+                                <?php if ( ! empty( $snippet_files ) ) : ?>
+                                    <li>
+                                        <strong><?php esc_html_e( 'Imported Files:', 'flygit' ); ?></strong>
+                                        <ul class="flygit-sublist">
+                                            <?php foreach ( $snippet_files as $file_name ) : ?>
+                                                <?php $source = isset( $snippet_sources[ $file_name ] ) ? $snippet_sources[ $file_name ] : ''; ?>
+                                                <li>
+                                                    <code><?php echo esc_html( $file_name ); ?></code>
+                                                    <?php if ( ! empty( $source ) ) : ?>
+                                                        <span class="description">(<?php echo esc_html( $source ); ?>)</span>
+                                                    <?php endif; ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
 
-            <label>
-                <?php esc_html_e( 'Repository URL', 'flygit' ); ?>
-                <input type="url" name="repository_url" placeholder="https://github.com/owner/repository" required />
-            </label>
+                            <div class="flygit-actions">
+                                <form class="flygit-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                    <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
+                                    <input type="hidden" name="action" value="flygit_import_snippet" />
+                                    <input type="hidden" name="installation_id" value="<?php echo esc_attr( $snippet_installation['id'] ); ?>" />
+                                    <button type="submit" class="button"><?php esc_html_e( 'Pull Latest', 'flygit' ); ?></button>
+                                </form>
+                                <form class="flygit-inline-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( $snippet_uninstall_message ); ?>');">
+                                    <?php wp_nonce_field( 'flygit_uninstall' ); ?>
+                                    <input type="hidden" name="action" value="flygit_uninstall" />
+                                    <input type="hidden" name="installation_id" value="<?php echo esc_attr( $snippet_installation['id'] ); ?>" />
+                                    <button type="submit" class="button flygit-button-danger"><?php esc_html_e( 'Uninstall', 'flygit' ); ?></button>
+                                </form>
+                            </div>
 
-            <label>
-                <?php esc_html_e( 'Repository File Path', 'flygit' ); ?>
-                <input type="text" name="file_path" placeholder="path/to/snippet.php" required />
-            </label>
+                            <div class="flygit-installation-settings">
+                                <h4><?php esc_html_e( 'FlyGit Settings', 'flygit' ); ?></h4>
 
-            <label>
-                <?php esc_html_e( 'Branch', 'flygit' ); ?>
-                <input type="text" name="branch" placeholder="main" />
-            </label>
+                                <div class="flygit-installation-webhook">
+                                    <span class="flygit-installation-subtitle"><?php esc_html_e( 'Webhook Endpoint', 'flygit' ); ?></span>
+                                    <div class="flygit-webhook-endpoint">
+                                        <code id="<?php echo esc_attr( $snippet_webhook_element_id ); ?>"><?php echo esc_html( $snippet_installation['webhook_url'] ); ?></code>
+                                        <button type="button" class="button flygit-copy" data-target="<?php echo esc_attr( $snippet_webhook_element_id ); ?>"><?php esc_html_e( 'Copy', 'flygit' ); ?></button>
+                                    </div>
+                                    <p class="description"><?php esc_html_e( 'Send a POST request to this endpoint to pull the latest snippets.', 'flygit' ); ?></p>
+                                </div>
 
-            <label>
-                <?php esc_html_e( 'Access Token (optional)', 'flygit' ); ?>
-                <input type="password" name="access_token" autocomplete="off" />
-            </label>
-
-            <p class="description">
-                <?php esc_html_e( 'Provide a GitHub personal access token when importing from private repositories.', 'flygit' ); ?>
-            </p>
-
-            <button type="submit" class="button button-primary">
-                <?php esc_html_e( 'Import Snippet', 'flygit' ); ?>
-            </button>
-        </form>
+                                <form class="flygit-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                    <?php wp_nonce_field( 'flygit_webhook_settings' ); ?>
+                                    <input type="hidden" name="action" value="flygit_save_webhook_settings" />
+                                    <input type="hidden" name="installation_id" value="<?php echo esc_attr( $snippet_installation['id'] ); ?>" />
+                                    <label>
+                                        <?php esc_html_e( 'Webhook Secret (optional)', 'flygit' ); ?>
+                                        <input type="text" name="webhook_secret" value="<?php echo esc_attr( $snippet_installation['webhook_secret'] ); ?>" placeholder="<?php esc_attr_e( 'Secret token to verify requests', 'flygit' ); ?>" />
+                                    </label>
+                                    <p class="description"><?php esc_html_e( 'When set, authenticate the webhook using the same headers supported for themes and plugins.', 'flygit' ); ?></p>
+                                    <button type="submit" class="button button-primary"><?php esc_html_e( 'Save Webhook Settings', 'flygit' ); ?></button>
+                                </form>
+                            </div>
+                        </div>
+                    </details>
+                <?php endforeach; ?>
+            <?php else : ?>
+                <p class="description"><?php esc_html_e( 'No snippet repositories imported yet.', 'flygit' ); ?></p>
+            <?php endif; ?>
+        </div>
 
         <?php if ( ! empty( $code_snippet_error ) ) : ?>
             <div class="notice notice-error inline">
@@ -426,6 +491,35 @@
             <?php endif; ?>
         </div>
     </div>
+    <footer class="flygit-section-footer">
+        <h3><?php esc_html_e( 'Import Snippet Repository', 'flygit' ); ?></h3>
+        <form class="flygit-form flygit-snippet-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
+            <input type="hidden" name="action" value="flygit_import_snippet" />
+
+            <label>
+                <?php esc_html_e( 'Repository URL', 'flygit' ); ?>
+                <input type="url" name="repository_url" placeholder="https://github.com/owner/repository" required />
+            </label>
+
+            <label>
+                <?php esc_html_e( 'Branch', 'flygit' ); ?>
+                <input type="text" name="branch" placeholder="main" />
+            </label>
+
+            <label>
+                <?php esc_html_e( 'Access Token (optional)', 'flygit' ); ?>
+                <input type="password" name="access_token" autocomplete="off" />
+            </label>
+
+            <p class="description"><?php esc_html_e( 'All PHP files located in the /php directory will be imported automatically.', 'flygit' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Provide a GitHub personal access token when importing from private repositories.', 'flygit' ); ?></p>
+
+            <button type="submit" class="button button-primary">
+                <?php esc_html_e( 'Import Snippets', 'flygit' ); ?>
+            </button>
+        </form>
+    </footer>
 </section>
 
 </div>

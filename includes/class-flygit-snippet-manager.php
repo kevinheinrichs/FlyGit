@@ -16,69 +16,58 @@ class FlyGit_Snippet_Manager {
     const STORAGE_DIR = 'fluent-snippet-storage';
 
     /**
-     * Import a snippet from a GitHub repository.
+     * Option name that stores snippet installations.
+     */
+    const INSTALLATION_OPTION = 'flygit_snippet_installations';
+
+    /**
+     * Prefix applied to stored snippet filenames.
+     */
+    const STORAGE_PREFIX = 'flygit-';
+
+    /**
+     * Repository directory containing snippet files.
+     */
+    const REPOSITORY_DIRECTORY = 'php';
+
+    /**
+     * Import PHP files from the default snippet directory of a repository.
      *
      * @param string $repository_url Repository URL.
-     * @param string $file_path      File path within the repository.
+     * @param string $file_path      Legacy parameter maintained for backwards compatibility.
      * @param string $branch         Branch name.
      * @param string $access_token   Optional GitHub access token.
      *
      * @return string|WP_Error Success message or error on failure.
      */
-    public function import_from_repository( $repository_url, $file_path, $branch = 'main', $access_token = '' ) {
-        $repository_url = esc_url_raw( trim( $repository_url ) );
-        $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : 'main';
-        $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : '';
-        $file_path      = $this->sanitize_repository_path( $file_path );
+    public function import_from_repository( $repository_url, $file_path = '', $branch = 'main', $access_token = '' ) {
+        unset( $file_path );
 
-        if ( empty( $repository_url ) ) {
-            return new WP_Error( 'flygit_snippet_invalid_repository', __( 'Repository URL is required.', 'flygit' ) );
+        return $this->perform_import( $repository_url, $branch, $access_token );
+    }
+
+    /**
+     * Re-import snippets for an existing installation.
+     *
+     * @param string $installation_id Installation identifier.
+     * @param string $repository_url  Optional repository URL override.
+     * @param string $branch          Optional branch override.
+     * @param string $access_token    Optional access token override.
+     *
+     * @return string|WP_Error
+     */
+    public function import_installation( $installation_id, $repository_url = '', $branch = '', $access_token = '' ) {
+        $installation = $this->get_installation_by_id( $installation_id );
+
+        if ( ! $installation ) {
+            return new WP_Error( 'flygit_snippet_installation_not_found', __( 'The requested snippet installation could not be found.', 'flygit' ) );
         }
 
-        if ( empty( $file_path ) ) {
-            return new WP_Error( 'flygit_snippet_invalid_path', __( 'File path within the repository is required.', 'flygit' ) );
-        }
+        $repository_url = ! empty( $repository_url ) ? $repository_url : ( isset( $installation['repository_url'] ) ? $installation['repository_url'] : '' );
+        $branch         = ! empty( $branch ) ? $branch : ( isset( $installation['branch'] ) ? $installation['branch'] : 'main' );
+        $access_token   = ! empty( $access_token ) ? $access_token : ( isset( $installation['access_token'] ) ? $installation['access_token'] : '' );
 
-        $repository = $this->parse_github_repository( $repository_url );
-        if ( is_wp_error( $repository ) ) {
-            return $repository;
-        }
-
-        $content = $this->fetch_github_file( $repository['owner'], $repository['repo'], $file_path, $branch, $access_token );
-        if ( is_wp_error( $content ) ) {
-            return $content;
-        }
-
-        $file_name = sanitize_file_name( basename( $file_path ) );
-        if ( empty( $file_name ) ) {
-            return new WP_Error( 'flygit_snippet_invalid_filename', __( 'Unable to determine a valid filename for the snippet.', 'flygit' ) );
-        }
-
-        $storage_dir = $this->ensure_storage_directory();
-        if ( is_wp_error( $storage_dir ) ) {
-            return $storage_dir;
-        }
-
-        $header = $this->generate_snippet_header( $file_name );
-        $code   = $this->normalize_snippet_content( $content );
-
-        $final_content = $header;
-        if ( '' !== $code ) {
-            $final_content .= "\n" . $code;
-        }
-        $final_content .= "\n";
-
-        $target_path = trailingslashit( $storage_dir ) . $file_name;
-
-        if ( false === file_put_contents( $target_path, $final_content ) ) { // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
-            return new WP_Error( 'flygit_snippet_write_failed', __( 'Unable to write the snippet file to the storage directory.', 'flygit' ) );
-        }
-
-        $message = sprintf( __( 'Snippet "%s" imported successfully.', 'flygit' ), $file_name );
-
-        do_action( 'fluent_snippets/rebuild_index', $file_name, true );
-
-        return $message;
+        return $this->perform_import( $repository_url, $branch, $access_token, $installation );
     }
 
     /**
@@ -93,16 +82,19 @@ class FlyGit_Snippet_Manager {
             return array();
         }
 
-        $pattern  = trailingslashit( $directory ) . '*.php';
-        $files    = glob( $pattern );
-        $snippets = array();
-
+        $files = glob( trailingslashit( $directory ) . '*.php' );
         if ( empty( $files ) ) {
             return array();
         }
 
+        $snippets = array();
+
         foreach ( $files as $file ) {
             if ( ! is_readable( $file ) ) {
+                continue;
+            }
+
+            if ( 0 !== strpos( basename( $file ), self::STORAGE_PREFIX ) ) {
                 continue;
             }
 
@@ -140,6 +132,110 @@ class FlyGit_Snippet_Manager {
     }
 
     /**
+     * Retrieve stored snippet installations.
+     *
+     * @return array
+     */
+    public function get_installations() {
+        $installations = $this->get_installations_raw();
+
+        foreach ( $installations as &$installation ) {
+            if ( ! isset( $installation['type'] ) ) {
+                $installation['type'] = 'snippet';
+            }
+
+            if ( ! isset( $installation['files'] ) || ! is_array( $installation['files'] ) ) {
+                $installation['files'] = array();
+            }
+
+            if ( ! isset( $installation['sources'] ) || ! is_array( $installation['sources'] ) ) {
+                $installation['sources'] = array();
+            }
+        }
+
+        return $installations;
+    }
+
+    /**
+     * Retrieve a snippet installation by identifier.
+     *
+     * @param string $installation_id Installation identifier.
+     *
+     * @return array|null
+     */
+    public function get_installation_by_id( $installation_id ) {
+        if ( empty( $installation_id ) ) {
+            return null;
+        }
+
+        $installations = $this->get_installations();
+
+        foreach ( $installations as $installation ) {
+            if ( isset( $installation['id'] ) && $installation['id'] === $installation_id ) {
+                return $installation;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Update data for a stored snippet installation.
+     *
+     * @param string $installation_id Installation identifier.
+     * @param array  $data            Data to merge into the installation.
+     *
+     * @return true|WP_Error
+     */
+    public function update_installation( $installation_id, array $data ) {
+        $installations = $this->get_installations_raw();
+        $updated       = false;
+
+        foreach ( $installations as $index => $installation ) {
+            if ( isset( $installation['id'] ) && $installation['id'] === $installation_id ) {
+                $installations[ $index ] = array_merge( $installation, $data );
+                $updated                 = true;
+                break;
+            }
+        }
+
+        if ( ! $updated ) {
+            return new WP_Error( 'flygit_snippet_installation_not_found', __( 'The requested snippet installation could not be found.', 'flygit' ) );
+        }
+
+        $this->save_installations( $installations );
+
+        return true;
+    }
+
+    /**
+     * Remove a snippet installation and delete imported files.
+     *
+     * @param string $installation_id Installation identifier.
+     *
+     * @return string|WP_Error
+     */
+    public function uninstall_installation( $installation_id ) {
+        $installation = $this->get_installation_by_id( $installation_id );
+
+        if ( ! $installation ) {
+            return new WP_Error( 'flygit_snippet_installation_not_found', __( 'The requested snippet installation could not be found.', 'flygit' ) );
+        }
+
+        $files = isset( $installation['files'] ) && is_array( $installation['files'] ) ? $installation['files'] : array();
+
+        foreach ( $files as $file_name ) {
+            $this->delete_snippet_file( $file_name );
+        }
+
+        $this->remove_installation_record( $installation_id );
+
+        $name = isset( $installation['name'] ) && $installation['name'] ? $installation['name'] : ( isset( $installation['slug'] ) ? $installation['slug'] : __( 'Snippet Repository', 'flygit' ) );
+
+        return sprintf( __( 'Snippet repository "%s" uninstalled successfully.', 'flygit' ), $name );
+    }
+
+    /**
      * Ensure the snippet storage directory exists and is writable.
      *
      * @return string|WP_Error
@@ -158,6 +254,337 @@ class FlyGit_Snippet_Manager {
         }
 
         return $directory;
+    }
+
+    /**
+     * Execute a snippet import.
+     *
+     * @param string     $repository_url        Repository URL.
+     * @param string     $branch                Branch name.
+     * @param string     $access_token          Access token.
+     * @param array|null $existing_installation Existing installation data.
+     *
+     * @return string|WP_Error
+     */
+    protected function perform_import( $repository_url, $branch, $access_token, ?array $existing_installation = null ) {
+        $repository_url = esc_url_raw( trim( $repository_url ) );
+        $branch         = ! empty( $branch ) ? sanitize_text_field( $branch ) : 'main';
+        $access_token   = ! empty( $access_token ) ? sanitize_text_field( $access_token ) : '';
+
+        if ( empty( $repository_url ) ) {
+            return new WP_Error( 'flygit_snippet_invalid_repository', __( 'Repository URL is required.', 'flygit' ) );
+        }
+
+        $repository = $this->parse_github_repository( $repository_url );
+        if ( is_wp_error( $repository ) ) {
+            return $repository;
+        }
+
+        $files = $this->fetch_php_files_from_repository( $repository['owner'], $repository['repo'], $branch, $access_token );
+        if ( is_wp_error( $files ) ) {
+            return $files;
+        }
+
+        if ( empty( $files ) ) {
+            return new WP_Error( 'flygit_snippet_no_files', __( 'No PHP files were found in the /php directory of the repository.', 'flygit' ) );
+        }
+
+        $storage_dir = $this->ensure_storage_directory();
+        if ( is_wp_error( $storage_dir ) ) {
+            return $storage_dir;
+        }
+
+        $installation_id  = null;
+        $slug             = '';
+        $name             = '';
+        $webhook_secret   = '';
+        $existing_files   = array();
+        $existing_sources = array();
+
+        if ( $existing_installation ) {
+            $installation_id  = isset( $existing_installation['id'] ) ? $existing_installation['id'] : $this->generate_installation_id();
+            $slug             = isset( $existing_installation['slug'] ) ? $existing_installation['slug'] : '';
+            $name             = isset( $existing_installation['name'] ) ? $existing_installation['name'] : '';
+            $webhook_secret   = isset( $existing_installation['webhook_secret'] ) ? $existing_installation['webhook_secret'] : '';
+            $existing_files   = isset( $existing_installation['files'] ) && is_array( $existing_installation['files'] ) ? $existing_installation['files'] : array();
+            $existing_sources = isset( $existing_installation['sources'] ) && is_array( $existing_installation['sources'] ) ? $existing_installation['sources'] : array();
+
+            if ( empty( $slug ) ) {
+                $slug = $this->ensure_unique_slug( $this->generate_installation_slug( $repository['repo'] ), $installation_id );
+            }
+
+            if ( empty( $name ) ) {
+                $name = $this->generate_installation_name( $repository['repo'] );
+            }
+        } else {
+            $installation_id = $this->generate_installation_id();
+            $slug            = $this->generate_installation_slug( $repository['repo'] );
+            $name            = $this->generate_installation_name( $repository['repo'] );
+        }
+
+        $written_files = array();
+        $source_map    = array();
+
+        foreach ( $files as $file ) {
+            if ( empty( $file['path'] ) || empty( $file['relative_path'] ) ) {
+                continue;
+            }
+
+            $content = $this->fetch_github_file( $repository['owner'], $repository['repo'], $file['path'], $branch, $access_token );
+            if ( is_wp_error( $content ) ) {
+                $this->cleanup_created_files( $written_files );
+
+                return $content;
+            }
+
+            $storage_filename = $this->generate_storage_filename( $slug, $file['relative_path'], $written_files, $existing_sources );
+            $target_path      = trailingslashit( $storage_dir ) . $storage_filename;
+            $header           = $this->generate_snippet_header( $storage_filename );
+            $code             = $this->normalize_snippet_content( $content );
+
+            $final_content = $header;
+            if ( '' !== $code ) {
+                $final_content .= "\n" . $code;
+            }
+            $final_content .= "\n";
+
+            if ( false === file_put_contents( $target_path, $final_content ) ) { // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents
+                $this->cleanup_created_files( $written_files );
+
+                return new WP_Error( 'flygit_snippet_write_failed', __( 'Unable to write the snippet file to the storage directory.', 'flygit' ) );
+            }
+
+            $written_files[]            = $storage_filename;
+            $source_map[ $storage_filename ] = $file['relative_path'];
+
+            do_action( 'fluent_snippets/rebuild_index', $storage_filename, true );
+        }
+
+        foreach ( $existing_files as $existing_file ) {
+            if ( ! in_array( $existing_file, $written_files, true ) ) {
+                $this->delete_snippet_file( $existing_file );
+            }
+        }
+
+        $record = array(
+            'id'             => $installation_id,
+            'type'           => 'snippet',
+            'slug'           => $slug,
+            'name'           => $name,
+            'repository_url' => $repository_url,
+            'branch'         => $branch,
+            'access_token'   => $access_token,
+            'webhook_secret' => $webhook_secret,
+            'files'          => $written_files,
+            'sources'        => $source_map,
+            'last_import'    => time(),
+        );
+
+        $this->record_installation( $record );
+
+        $file_count = count( $written_files );
+        $label      = ! empty( $name ) ? $name : $slug;
+
+        $message = sprintf(
+            _n( 'Imported %1$d snippet from "%2$s".', 'Imported %1$d snippets from "%2$s".', $file_count, 'flygit' ),
+            $file_count,
+            $label
+        );
+
+        return $message;
+    }
+
+    /**
+     * Fetch PHP files from the repository snippet directory.
+     *
+     * @param string $owner        Repository owner.
+     * @param string $repo         Repository name.
+     * @param string $branch       Branch name.
+     * @param string $access_token Optional access token.
+     *
+     * @return array|WP_Error
+     */
+    protected function fetch_php_files_from_repository( $owner, $repo, $branch, $access_token = '' ) {
+        $directory = trim( self::REPOSITORY_DIRECTORY, '/' );
+
+        $files = $this->crawl_github_directory( $owner, $repo, $directory, $branch, $access_token, $directory );
+        if ( is_wp_error( $files ) ) {
+            return $files;
+        }
+
+        $php_files = array();
+
+        foreach ( $files as $file ) {
+            if ( ! isset( $file['path'], $file['relative_path'] ) ) {
+                continue;
+            }
+
+            if ( ! preg_match( '/\.php$/i', $file['path'] ) ) {
+                continue;
+            }
+
+            $php_files[] = $file;
+        }
+
+        return $php_files;
+    }
+
+    /**
+     * Crawl a repository directory and return file descriptors.
+     *
+     * @param string $owner        Repository owner.
+     * @param string $repo         Repository name.
+     * @param string $path         Path within the repository.
+     * @param string $branch       Branch name.
+     * @param string $access_token Access token.
+     * @param string $base_path    Base path used for relative calculations.
+     *
+     * @return array|WP_Error
+     */
+    protected function crawl_github_directory( $owner, $repo, $path, $branch, $access_token, $base_path ) {
+        $response = $this->request_github_contents( $owner, $repo, $path, $branch, $access_token );
+
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+
+        $files = array();
+
+        if ( isset( $response['type'] ) && 'file' === $response['type'] ) {
+            $files[] = array(
+                'path'          => $response['path'],
+                'relative_path' => $this->normalize_relative_path( $response['path'], $base_path ),
+            );
+
+            return $files;
+        }
+
+        if ( ! is_array( $response ) ) {
+            return new WP_Error( 'flygit_snippet_invalid_response', __( 'Unexpected response received from GitHub.', 'flygit' ) );
+        }
+
+        foreach ( $response as $item ) {
+            if ( empty( $item['type'] ) || empty( $item['path'] ) ) {
+                continue;
+            }
+
+            if ( 'file' === $item['type'] ) {
+                $files[] = array(
+                    'path'          => $item['path'],
+                    'relative_path' => $this->normalize_relative_path( $item['path'], $base_path ),
+                );
+            } elseif ( 'dir' === $item['type'] ) {
+                $sub_path  = $item['path'];
+                $sub_files = $this->crawl_github_directory( $owner, $repo, $sub_path, $branch, $access_token, $base_path );
+
+                if ( is_wp_error( $sub_files ) ) {
+                    return $sub_files;
+                }
+
+                if ( ! empty( $sub_files ) ) {
+                    $files = array_merge( $files, $sub_files );
+                }
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * Normalize a repository path to be relative to a base path.
+     *
+     * @param string $path      Repository path.
+     * @param string $base_path Base path.
+     *
+     * @return string
+     */
+    protected function normalize_relative_path( $path, $base_path ) {
+        $path      = trim( $path, '/' );
+        $base_path = trim( $base_path, '/' );
+
+        if ( '' === $base_path ) {
+            return $path;
+        }
+
+        if ( $path === $base_path ) {
+            return basename( $path );
+        }
+
+        if ( 0 === strpos( $path, $base_path . '/' ) ) {
+            return substr( $path, strlen( $base_path ) + 1 );
+        }
+
+        return $path;
+    }
+
+    /**
+     * Request the contents of a repository path from GitHub.
+     *
+     * @param string $owner        Repository owner.
+     * @param string $repo         Repository name.
+     * @param string $path         Path within the repository.
+     * @param string $branch       Branch name.
+     * @param string $access_token Optional access token.
+     *
+     * @return array|WP_Error
+     */
+    protected function request_github_contents( $owner, $repo, $path, $branch, $access_token = '' ) {
+        $api_url = sprintf(
+            'https://api.github.com/repos/%1$s/%2$s/contents/%3$s?ref=%4$s',
+            rawurlencode( $owner ),
+            rawurlencode( $repo ),
+            $this->encode_path_for_github( $path ),
+            rawurlencode( $branch )
+        );
+
+        $args = array(
+            'timeout' => 60,
+            'headers' => array(
+                'Accept'     => 'application/vnd.github.v3+json',
+                'User-Agent' => 'FlyGit-Snippets',
+            ),
+        );
+
+        if ( ! empty( $access_token ) ) {
+            $args['headers']['Authorization'] = 'token ' . trim( $access_token );
+        }
+
+        $response = wp_remote_get( $api_url, $args );
+
+        if ( is_wp_error( $response ) ) {
+            return new WP_Error( 'flygit_snippet_http_error', $response->get_error_message() );
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        $body = wp_remote_retrieve_body( $response );
+
+        if ( 200 !== $code ) {
+            $message = '';
+
+            if ( ! empty( $body ) ) {
+                $decoded = json_decode( $body, true );
+                if ( is_array( $decoded ) && ! empty( $decoded['message'] ) ) {
+                    $message = $decoded['message'];
+                }
+            }
+
+            if ( empty( $message ) ) {
+                if ( 404 === $code ) {
+                    $message = sprintf( __( 'Unable to locate "%s" in the repository.', 'flygit' ), sanitize_text_field( $path ) );
+                } else {
+                    $message = sprintf( __( 'GitHub API responded with status code %d.', 'flygit' ), $code );
+                }
+            }
+
+            return new WP_Error( 'flygit_snippet_http_error', $message );
+        }
+
+        $data = json_decode( $body, true );
+        if ( null === $data ) {
+            return new WP_Error( 'flygit_snippet_invalid_response', __( 'Unexpected response received from GitHub.', 'flygit' ) );
+        }
+
+        return $data;
     }
 
     /**
@@ -193,7 +620,6 @@ class FlyGit_Snippet_Manager {
             'repo'  => $repo,
         );
     }
-
     /**
      * Fetch the contents of a file from GitHub.
      *
@@ -305,7 +731,7 @@ class FlyGit_Snippet_Manager {
             return '';
         }
 
-        $content = preg_replace( '/^\xEF\xBB\xBF/', '', $content ); // Remove BOM.
+        $content = preg_replace( '/^\xEF\xBB\xBF/', '', $content );
         $content = ltrim( $content );
 
         if ( 0 === strpos( $content, '<?php' ) ) {
@@ -407,4 +833,233 @@ class FlyGit_Snippet_Manager {
 
         return implode( '/', $parts );
     }
+
+    /**
+     * Persist a snippet installation.
+     *
+     * @param array $installation Installation data.
+     */
+    protected function record_installation( array $installation ) {
+        $installations = $this->get_installations_raw();
+        $found         = false;
+
+        foreach ( $installations as $index => $existing ) {
+            if ( isset( $existing['id'] ) && $existing['id'] === $installation['id'] ) {
+                $installations[ $index ] = array_merge( $existing, $installation );
+                $found                   = true;
+                break;
+            }
+        }
+
+        if ( ! $found ) {
+            $installations[] = $installation;
+        }
+
+        $this->save_installations( $installations );
+    }
+
+    /**
+     * Retrieve raw snippet installations.
+     *
+     * @return array
+     */
+    protected function get_installations_raw() {
+        $installations = get_option( self::INSTALLATION_OPTION, array() );
+
+        if ( ! is_array( $installations ) ) {
+            return array();
+        }
+
+        return array_values( $installations );
+    }
+
+    /**
+     * Persist snippet installations.
+     *
+     * @param array $installations Installations to save.
+     */
+    protected function save_installations( array $installations ) {
+        update_option( self::INSTALLATION_OPTION, array_values( $installations ) );
+    }
+
+    /**
+     * Remove a snippet installation record.
+     *
+     * @param string $installation_id Installation identifier.
+     */
+    protected function remove_installation_record( $installation_id ) {
+        $installations = $this->get_installations_raw();
+        $updated       = array();
+
+        foreach ( $installations as $installation ) {
+            if ( isset( $installation['id'] ) && $installation['id'] === $installation_id ) {
+                continue;
+            }
+
+            $updated[] = $installation;
+        }
+
+        $this->save_installations( $updated );
+    }
+
+    /**
+     * Delete a snippet file from storage.
+     *
+     * @param string $file_name Stored snippet filename.
+     */
+    protected function delete_snippet_file( $file_name ) {
+        $file_path = trailingslashit( $this->get_storage_directory_path() ) . $file_name;
+
+        if ( file_exists( $file_path ) && is_file( $file_path ) ) {
+            @unlink( $file_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            do_action( 'fluent_snippets/rebuild_index', $file_name, false );
+        }
+    }
+
+    /**
+     * Cleanup snippet files that were created during the current import.
+     *
+     * @param array $files Filenames to remove.
+     */
+    protected function cleanup_created_files( array $files ) {
+        if ( empty( $files ) ) {
+            return;
+        }
+
+        foreach ( $files as $file_name ) {
+            $this->delete_snippet_file( $file_name );
+        }
+    }
+
+    /**
+     * Generate a unique installation identifier.
+     *
+     * @return string
+     */
+    protected function generate_installation_id() {
+        if ( function_exists( 'wp_generate_uuid4' ) ) {
+            return wp_generate_uuid4();
+        }
+
+        return md5( uniqid( 'flygit', true ) );
+    }
+
+    /**
+     * Ensure a slug is unique among installations.
+     *
+     * @param string      $slug       Proposed slug.
+     * @param string|null $current_id Optional installation identifier to ignore.
+     *
+     * @return string
+     */
+    protected function ensure_unique_slug( $slug, $current_id = null ) {
+        $slug = trim( $slug );
+
+        if ( '' === $slug ) {
+            $slug = 'snippet';
+        }
+
+        $existing_slugs = array();
+
+        foreach ( $this->get_installations() as $installation ) {
+            if ( ! isset( $installation['slug'] ) ) {
+                continue;
+            }
+
+            if ( $current_id && isset( $installation['id'] ) && $installation['id'] === $current_id ) {
+                continue;
+            }
+
+            $existing_slugs[] = $installation['slug'];
+        }
+
+        if ( ! in_array( $slug, $existing_slugs, true ) ) {
+            return $slug;
+        }
+
+        $base  = $slug;
+        $index = 2;
+
+        do {
+            $slug = $base . '-' . $index;
+            $index++;
+        } while ( in_array( $slug, $existing_slugs, true ) );
+
+        return $slug;
+    }
+
+    /**
+     * Generate an installation slug from a repository name.
+     *
+     * @param string $repo_name Repository name.
+     *
+     * @return string
+     */
+    protected function generate_installation_slug( $repo_name ) {
+        $slug = sanitize_title( $repo_name );
+
+        if ( '' === $slug ) {
+            $slug = sanitize_title( 'snippet-' . uniqid() );
+        }
+
+        return $this->ensure_unique_slug( $slug );
+    }
+
+    /**
+     * Generate a human readable installation name.
+     *
+     * @param string $repo_name Repository name.
+     *
+     * @return string
+     */
+    protected function generate_installation_name( $repo_name ) {
+        $name = trim( $repo_name );
+
+        if ( '' === $name ) {
+            $name = __( 'Snippet Repository', 'flygit' );
+        }
+
+        return $name;
+    }
+
+    /**
+     * Generate a storage filename for an imported snippet.
+     *
+     * @param string $slug             Installation slug.
+     * @param string $relative_path    Relative repository path.
+     * @param array  $current_files    Files created during this import.
+     * @param array  $existing_sources Existing file to source path mapping.
+     *
+     * @return string
+     */
+    protected function generate_storage_filename( $slug, $relative_path, array $current_files, array $existing_sources ) {
+        foreach ( $existing_sources as $existing_file => $source_path ) {
+            if ( $source_path === $relative_path && ! in_array( $existing_file, $current_files, true ) ) {
+                return $existing_file;
+            }
+        }
+
+        $slug_part     = sanitize_title( $slug );
+        $relative_base = preg_replace( '/\.php$/i', '', $relative_path );
+        $relative_base = str_replace( array( '/', '\\' ), '-', $relative_base );
+        $relative_part = sanitize_title( $relative_base );
+
+        $combined = trim( $slug_part . '-' . $relative_part, '-' );
+        if ( '' === $combined ) {
+            $combined = $slug_part ? $slug_part : 'snippet';
+        }
+
+        $base        = self::STORAGE_PREFIX . $combined;
+        $storage_dir = trailingslashit( $this->get_storage_directory_path() );
+        $counter     = 1;
+
+        do {
+            $suffix    = ( 1 === $counter ) ? '' : '-' . $counter;
+            $file_name = $base . $suffix . '.php';
+            $counter++;
+        } while ( in_array( $file_name, $current_files, true ) || file_exists( $storage_dir . $file_name ) );
+
+        return $file_name;
+    }
 }
+

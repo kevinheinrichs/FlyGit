@@ -35,7 +35,7 @@ function flygit_init() {
     $installer = new FlyGit_Installer();
     $snippets  = new FlyGit_Snippet_Manager();
     $admin     = new FlyGit_Admin( $installer, $snippets );
-    $webhook   = new FlyGit_Webhook_Handler( $installer );
+    $webhook   = new FlyGit_Webhook_Handler( $installer, $snippets );
 
     $GLOBALS['flygit_installer'] = $installer;
     $GLOBALS['flygit_snippets']  = $snippets;
