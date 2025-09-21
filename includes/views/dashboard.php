@@ -15,7 +15,42 @@
 
 ?>
 <div class="wrap flygit-dashboard">
-    <h1><?php esc_html_e( 'FlyGit Dashboard', 'flygit' ); ?></h1>
+    <?php
+    $theme_total            = isset( $installed_count['themes'] ) ? (int) $installed_count['themes'] : ( is_array( $themes ) ? count( $themes ) : 0 );
+    $plugin_total           = isset( $installed_count['plugins'] ) ? (int) $installed_count['plugins'] : ( is_array( $plugins ) ? count( $plugins ) : 0 );
+    $snippet_total          = isset( $installed_count['snippets'] ) ? (int) $installed_count['snippets'] : ( isset( $snippet_installations ) && is_array( $snippet_installations ) ? count( $snippet_installations ) : 0 );
+    $active_plugin_count    = is_array( $active_plugins ) ? count( $active_plugins ) : 0;
+    $current_theme_name     = ( $current_theme instanceof WP_Theme ) ? $current_theme->get( 'Name' ) : '';
+    $stored_snippet_count   = is_array( $code_snippets ) ? count( $code_snippets ) : 0;
+    ?>
+
+    <header class="flygit-hero">
+        <div class="flygit-hero-body">
+            <h1><?php esc_html_e( 'FlyGit Dashboard', 'flygit' ); ?></h1>
+            <p>
+                <?php esc_html_e( 'Manage Git-powered deployments for your WordPress themes, plugins, and snippets in one place.', 'flygit' ); ?>
+            </p>
+            <?php if ( ! empty( $current_theme_name ) ) : ?>
+                <span class="flygit-hero-meta">
+                    <?php printf( esc_html__( 'Current theme: %s', 'flygit' ), esc_html( $current_theme_name ) ); ?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <div class="flygit-hero-actions" aria-label="<?php esc_attr_e( 'Quick actions', 'flygit' ); ?>">
+            <a class="button button-primary flygit-hero-button" href="#flygit-install-theme">
+                <span class="dashicons dashicons-admin-appearance" aria-hidden="true"></span>
+                <span><?php esc_html_e( 'Install Theme', 'flygit' ); ?></span>
+            </a>
+            <a class="button flygit-hero-button" href="#flygit-install-plugin">
+                <span class="dashicons dashicons-admin-plugins" aria-hidden="true"></span>
+                <span><?php esc_html_e( 'Install Plugin', 'flygit' ); ?></span>
+            </a>
+            <a class="button flygit-hero-button" href="#flygit-import-snippets">
+                <span class="dashicons dashicons-media-code" aria-hidden="true"></span>
+                <span><?php esc_html_e( 'Import Snippets', 'flygit' ); ?></span>
+            </a>
+        </div>
+    </header>
 
     <?php if ( ! empty( $status ) && ! empty( $message ) ) : ?>
         <?php
@@ -25,6 +60,37 @@
             <p><?php echo esc_html( $message ); ?></p>
         </div>
     <?php endif; ?>
+
+    <div class="flygit-stats-grid" role="list">
+        <div class="flygit-stat-card" role="listitem">
+            <span class="flygit-stat-icon dashicons dashicons-admin-appearance" aria-hidden="true"></span>
+            <div class="flygit-stat-content">
+                <span class="flygit-stat-label"><?php esc_html_e( 'Themes managed', 'flygit' ); ?></span>
+                <span class="flygit-stat-value"><?php echo esc_html( number_format_i18n( $theme_total ) ); ?></span>
+                <?php if ( ! empty( $current_theme_name ) ) : ?>
+                    <span class="flygit-stat-sub"><?php printf( esc_html__( 'Active theme: %s', 'flygit' ), esc_html( $current_theme_name ) ); ?></span>
+                <?php else : ?>
+                    <span class="flygit-stat-sub"><?php esc_html_e( 'No active theme detected.', 'flygit' ); ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="flygit-stat-card" role="listitem">
+            <span class="flygit-stat-icon dashicons dashicons-admin-plugins" aria-hidden="true"></span>
+            <div class="flygit-stat-content">
+                <span class="flygit-stat-label"><?php esc_html_e( 'Plugins managed', 'flygit' ); ?></span>
+                <span class="flygit-stat-value"><?php echo esc_html( number_format_i18n( $plugin_total ) ); ?></span>
+                <span class="flygit-stat-sub"><?php printf( esc_html__( '%d active plugins', 'flygit' ), (int) $active_plugin_count ); ?></span>
+            </div>
+        </div>
+        <div class="flygit-stat-card" role="listitem">
+            <span class="flygit-stat-icon dashicons dashicons-media-code" aria-hidden="true"></span>
+            <div class="flygit-stat-content">
+                <span class="flygit-stat-label"><?php esc_html_e( 'Snippet repositories', 'flygit' ); ?></span>
+                <span class="flygit-stat-value"><?php echo esc_html( number_format_i18n( $snippet_total ) ); ?></span>
+                <span class="flygit-stat-sub"><?php printf( esc_html__( '%d stored snippets', 'flygit' ), (int) $stored_snippet_count ); ?></span>
+            </div>
+        </div>
+    </div>
 
     <div class="flygit-columns">
         <div class="flygit-column">
@@ -54,7 +120,7 @@
                         $uninstall_message = sprintf( esc_html__( 'Are you sure you want to uninstall the theme "%s"?', 'flygit' ), $uninstall_label );
                         ?>
                         <details class="flygit-item" <?php echo $is_active ? 'open' : ''; ?>>
-                            <summary>
+                            <summary class="flygit-item-summary">
                                 <span class="flygit-item-title"><?php echo esc_html( $theme_name ); ?></span>
                                 <span class="flygit-item-meta">
                                     <?php if ( $is_active ) : ?>
@@ -150,10 +216,13 @@
                         </details>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <p class="description"><?php esc_html_e( 'No themes installed with FlyGit yet.', 'flygit' ); ?></p>
+                        <p class="description flygit-empty-state">
+                            <span class="dashicons dashicons-admin-appearance" aria-hidden="true"></span>
+                            <?php esc_html_e( 'No themes installed with FlyGit yet.', 'flygit' ); ?>
+                        </p>
                     <?php endif; ?>
                 </div>
-                <footer class="flygit-section-footer">
+                <footer class="flygit-section-footer" id="flygit-install-theme">
                     <h3><?php esc_html_e( 'Install Theme', 'flygit' ); ?></h3>
                     <form class="flygit-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                         <?php wp_nonce_field( 'flygit_install' ); ?>
@@ -209,7 +278,7 @@
                         $plugin_uninstall_message = sprintf( esc_html__( 'Are you sure you want to uninstall the plugin "%s"?', 'flygit' ), $plugin_uninstall_label );
                         ?>
                         <details class="flygit-item">
-                            <summary>
+                            <summary class="flygit-item-summary">
                                 <span class="flygit-item-title"><?php echo esc_html( $plugin_data['Name'] ); ?></span>
                                 <span class="flygit-item-meta">
                                     <?php if ( $is_active ) : ?>
@@ -300,10 +369,13 @@
                         </details>
                         <?php endforeach; ?>
                     <?php else : ?>
-                        <p class="description"><?php esc_html_e( 'No plugins installed with FlyGit yet.', 'flygit' ); ?></p>
+                        <p class="description flygit-empty-state">
+                            <span class="dashicons dashicons-admin-plugins" aria-hidden="true"></span>
+                            <?php esc_html_e( 'No plugins installed with FlyGit yet.', 'flygit' ); ?>
+                        </p>
                     <?php endif; ?>
                 </div>
-                <footer class="flygit-section-footer">
+                <footer class="flygit-section-footer" id="flygit-install-plugin">
                     <h3><?php esc_html_e( 'Install Plugin', 'flygit' ); ?></h3>
                     <form class="flygit-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                         <?php wp_nonce_field( 'flygit_install' ); ?>
@@ -361,7 +433,7 @@
                     $snippet_display_name      = ! empty( $snippet_installation['name'] ) ? $snippet_installation['name'] : ( isset( $snippet_installation['slug'] ) ? $snippet_installation['slug'] : __( 'Snippet Repository', 'flygit' ) );
                     ?>
                     <details class="flygit-item">
-                        <summary>
+                        <summary class="flygit-item-summary">
                             <span class="flygit-item-title"><?php echo esc_html( $snippet_display_name ); ?></span>
                             <span class="flygit-item-meta">
                                 <span><?php printf( esc_html__( '%d files', 'flygit' ), $snippet_count ); ?></span>
@@ -450,7 +522,10 @@
                     </details>
                 <?php endforeach; ?>
             <?php else : ?>
-                <p class="description"><?php esc_html_e( 'No snippet repositories imported yet.', 'flygit' ); ?></p>
+                <p class="description flygit-empty-state">
+                    <span class="dashicons dashicons-media-code" aria-hidden="true"></span>
+                    <?php esc_html_e( 'No snippet repositories imported yet.', 'flygit' ); ?>
+                </p>
             <?php endif; ?>
         </div>
 
@@ -499,11 +574,14 @@
                     <?php endforeach; ?>
                 </ul>
             <?php else : ?>
-                <p class="description"><?php esc_html_e( 'No snippets imported yet.', 'flygit' ); ?></p>
+                <p class="description flygit-empty-state">
+                    <span class="dashicons dashicons-media-code" aria-hidden="true"></span>
+                    <?php esc_html_e( 'No snippets imported yet.', 'flygit' ); ?>
+                </p>
             <?php endif; ?>
         </div>
     </div>
-    <footer class="flygit-section-footer">
+    <footer class="flygit-section-footer" id="flygit-import-snippets">
         <h3><?php esc_html_e( 'Import Snippet Repository', 'flygit' ); ?></h3>
         <form class="flygit-form flygit-snippet-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
             <?php wp_nonce_field( 'flygit_import_snippet' ); ?>
