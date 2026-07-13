@@ -123,6 +123,10 @@ add_action( 'plugins_loaded', 'flygit_bootstrap' );
 function flygit_activate() {
 	FlyGit_Options::ensure_defaults();
 
+	// During the activation request plugins_loaded already fired, so the
+	// custom interval filter is not registered yet — add it here first.
+	add_filter( 'cron_schedules', array( flygit_service( 'updater' ), 'register_cron_interval' ) );
+
 	if ( ! wp_next_scheduled( 'flygit_check_updates' ) ) {
 		wp_schedule_event( time() + 120, FlyGit_Updater::CRON_INTERVAL_KEY, 'flygit_check_updates' );
 	}
