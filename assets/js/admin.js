@@ -1,68 +1,135 @@
-(function ($) {
-    'use strict';
+/**
+ * FlyGit 2.0 — Admin interactions (vanilla JS, no dependencies).
+ */
+( function () {
+	'use strict';
 
-    function copyToClipboard(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(text)
-                .then(function () {
-                    return true;
-                })
-                .catch(function () {
-                    return false;
-                });
-        }
+	/**
+	 * Copy-to-clipboard buttons.
+	 */
+	document.querySelectorAll( '.flygit-copy' ).forEach( function ( button ) {
+		button.addEventListener( 'click', function () {
+			var targetId = button.getAttribute( 'data-copy-target' );
+			var attr = button.getAttribute( 'data-copy-attr' );
+			var target = document.getElementById( targetId );
 
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
+			if ( ! target ) {
+				return;
+			}
 
-        var successful = false;
+			var text = attr ? target.getAttribute( attr ) : target.textContent;
 
-        try {
-            successful = document.execCommand('copy');
-        } catch (err) {
-            successful = false;
-        }
+			if ( ! text ) {
+				return;
+			}
 
-        document.body.removeChild(textarea);
+			var restore = function () {
+				window.setTimeout( function () {
+					button.textContent = button.getAttribute( 'data-original-label' );
+				}, 1500 );
+			};
 
-        return successful;
-    }
+			if ( ! button.getAttribute( 'data-original-label' ) ) {
+				button.setAttribute( 'data-original-label', button.textContent );
+			}
 
-    $(document).on('click', '.flygit-copy', function (event) {
-        event.preventDefault();
-        var targetId = $(this).data('target');
-        var target = document.getElementById(targetId);
-        if (!target) {
-            return;
-        }
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( text ).then(
+					function () {
+						button.textContent = '✓';
+						restore();
+					},
+					function () {
+						fallbackCopy( text, button, restore );
+					}
+				);
+			} else {
+				fallbackCopy( text, button, restore );
+			}
+		} );
+	} );
 
-        var text = target.innerText || target.textContent;
-        var button = $(this);
-        var originalText = button.text();
+	/**
+	 * Legacy clipboard fallback.
+	 *
+	 * @param {string}   text    Text to copy.
+	 * @param {Element}  button  Trigger button.
+	 * @param {Function} restore Label restore callback.
+	 */
+	function fallbackCopy( text, button, restore ) {
+		var textarea = document.createElement( 'textarea' );
+		textarea.value = text;
+		textarea.setAttribute( 'readonly', '' );
+		textarea.style.position = 'absolute';
+		textarea.style.left = '-9999px';
+		document.body.appendChild( textarea );
+		textarea.select();
 
-        var handleResult = function (copied) {
-            if (!copied) {
-                return;
-            }
+		try {
+			document.execCommand( 'copy' );
+			button.textContent = '✓';
+		} catch ( err ) {
+			button.textContent = '✗';
+		}
 
-            button.text(flygitAdmin.copySuccess || 'Copied');
+		document.body.removeChild( textarea );
+		restore();
+	}
 
-            setTimeout(function () {
-                button.text(originalText);
-            }, 2000);
-        };
+	/**
+	 * Reveal-secret buttons.
+	 */
+	document.querySelectorAll( '.flygit-reveal' ).forEach( function ( button ) {
+		button.addEventListener( 'click', function () {
+			var target = document.getElementById( button.getAttribute( 'data-reveal-target' ) );
 
-        var result = copyToClipboard(text);
+			if ( ! target ) {
+				return;
+			}
 
-        if (result && typeof result.then === 'function') {
-            result.then(handleResult);
-        } else {
-            handleResult(result);
-        }
-    });
-})(jQuery);
+			var secret = target.getAttribute( 'data-secret' ) || '';
+			var revealed = target.getAttribute( 'data-revealed' ) === '1';
+
+			if ( revealed ) {
+				target.textContent = '••••••••••••';
+				target.setAttribute( 'data-revealed', '0' );
+				button.textContent = button.getAttribute( 'data-label-show' ) || 'Anzeigen';
+			} else {
+				if ( ! button.getAttribute( 'data-label-show' ) ) {
+					button.setAttribute( 'data-label-show', button.textContent );
+				}
+				target.textContent = secret;
+				target.setAttribute( 'data-revealed', '1' );
+				button.textContent = 'Verbergen';
+			}
+		} );
+	} );
+
+	/**
+	 * Confirm-guarded forms (delete, secret regeneration).
+	 */
+	document.querySelectorAll( 'form.flygit-confirm' ).forEach( function ( form ) {
+		form.addEventListener( 'submit', function ( event ) {
+			var text = form.getAttribute( 'data-confirm' ) || 'Sicher?';
+
+			if ( ! window.confirm( text ) ) {
+				event.preventDefault();
+			}
+		} );
+	} );
+
+	/**
+	 * Disable submit buttons on submit to prevent double-fire.
+	 */
+	document.querySelectorAll( '.flygit-wrap form' ).forEach( function ( form ) {
+		form.addEventListener( 'submit', function () {
+			var buttons = form.querySelectorAll( 'button[type="submit"]' );
+
+			window.setTimeout( function () {
+				buttons.forEach( function ( b ) {
+					b.disabled = true;
+				} );
+			}, 0 );
+		} );
+	} );
+} )();

@@ -1,357 +1,551 @@
-.flygit-dashboard {
-    max-width: 1200px;
+/* FlyGit 2.0 — Admin UI
+   Scoped unter .flygit-wrap, lädt nur auf der FlyGit-Seite. */
+
+.flygit-wrap {
+	--fg-accent: #2271b1;
+	--fg-accent-dark: #135e96;
+	--fg-success: #00a32a;
+	--fg-warning: #dba617;
+	--fg-danger: #d63638;
+	--fg-info: #72aee6;
+	--fg-border: #dcdcde;
+	--fg-bg-card: #fff;
+	--fg-radius: 10px;
+	--fg-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.04);
+	max-width: 1200px;
+	margin-top: 16px;
 }
 
-.flygit-columns {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 24px;
-    margin-top: 24px;
-    margin-bottom: 32px;
+/* ---------- Header ---------- */
+
+.flygit-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 4px;
 }
 
-.flygit-section {
-    background: #ffffff;
-    border: 1px solid #dcdcde;
-    border-radius: 6px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
+.flygit-header-title {
+	display: flex;
+	align-items: center;
+	gap: 14px;
 }
 
-.flygit-snippets-section {
-    margin-top: 32px;
+.flygit-logo {
+	font-size: 40px;
+	width: 40px;
+	height: 40px;
+	color: var(--fg-accent);
 }
 
-.flygit-section-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #dcdcde;
+.flygit-header-title h1 {
+	margin: 0;
+	padding: 0;
+	font-size: 24px;
+	line-height: 1.2;
 }
 
-.flygit-section-header h2 {
-    margin: 0;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.flygit-tagline {
+	margin: 2px 0 0;
+	color: #646970;
 }
+
+.flygit-header-meta {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+/* ---------- Pills & Badges ---------- */
+
+.flygit-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 12px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.6;
+	white-space: nowrap;
+}
+
+.flygit-pill .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	line-height: 1.6;
+}
+
+.flygit-pill-success { background: #edfaef; color: #007017; }
+.flygit-pill-warning { background: #fcf9e8; color: #996800; }
+.flygit-pill-danger  { background: #fcf0f1; color: #b32d2e; }
+.flygit-pill-info    { background: #f0f6fc; color: #135e96; }
+.flygit-pill-muted   { background: #f0f0f1; color: #50575e; }
 
 .flygit-badge {
-    background: #2271b1;
-    color: #fff;
-    border-radius: 999px;
-    padding: 2px 10px;
-    font-size: 12px;
+	display: inline-block;
+	min-width: 18px;
+	padding: 0 5px;
+	border-radius: 9px;
+	background: var(--fg-danger);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	text-align: center;
+	line-height: 18px;
+	margin-left: 4px;
 }
 
-.flygit-list {
-    padding: 0 20px;
+/* ---------- Tabs ---------- */
+
+.flygit-tabs {
+	display: flex;
+	gap: 4px;
+	margin: 18px 0 20px;
+	border-bottom: 1px solid var(--fg-border);
+	flex-wrap: wrap;
 }
 
-.flygit-item {
-    border-bottom: 1px solid #dcdcde;
-    padding: 14px 0;
+.flygit-tab {
+	padding: 10px 16px;
+	text-decoration: none;
+	color: #50575e;
+	font-weight: 500;
+	font-size: 14px;
+	border-bottom: 3px solid transparent;
+	margin-bottom: -1px;
+	transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.flygit-item:last-of-type {
-    border-bottom: none;
+.flygit-tab:hover,
+.flygit-tab:focus {
+	color: var(--fg-accent);
+	box-shadow: none;
+	outline: none;
 }
 
-.flygit-item summary {
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    list-style: none;
+.flygit-tab.is-active {
+	color: var(--fg-accent-dark);
+	border-bottom-color: var(--fg-accent);
 }
 
-.flygit-item summary::-webkit-details-marker {
-    display: none;
+/* ---------- Cards Grid ---------- */
+
+.flygit-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+	gap: 16px;
 }
 
-.flygit-item-title {
-    font-weight: 600;
-    font-size: 16px;
+@media (max-width: 960px) {
+	.flygit-grid { grid-template-columns: 1fr; }
 }
 
-.flygit-item-meta {
-    display: flex;
-    gap: 12px;
-    font-size: 13px;
-    color: #50575e;
-    align-items: center;
+.flygit-card {
+	background: var(--fg-bg-card);
+	border: 1px solid var(--fg-border);
+	border-radius: var(--fg-radius);
+	box-shadow: var(--fg-shadow);
+	padding: 18px 20px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	transition: box-shadow 0.15s ease;
 }
 
-.flygit-status {
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.flygit-card:hover {
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-.flygit-status-active {
-    background: #d1f2c7;
-    color: #207227;
+.flygit-card.has-update { border-left: 4px solid var(--fg-warning); }
+.flygit-card.has-error  { border-left: 4px solid var(--fg-danger); }
+
+.flygit-card-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
 }
 
-.flygit-status-inactive {
-    background: #f2dada;
-    color: #842029;
+.flygit-type-icon {
+	font-size: 24px;
+	width: 24px;
+	height: 24px;
+	color: var(--fg-accent);
+	margin-top: 2px;
 }
 
-.flygit-item-body {
-    margin-top: 12px;
-    display: grid;
-    gap: 12px;
+.flygit-card-title {
+	flex: 1;
+	min-width: 0;
 }
 
-.flygit-description {
-    margin: 0;
-    color: #2c3338;
+.flygit-card-title h3 {
+	margin: 0;
+	font-size: 15px;
+	line-height: 1.3;
 }
 
-.flygit-meta {
-    margin: 0;
-    padding-left: 18px;
-    color: #50575e;
-    font-size: 13px;
+.flygit-repo-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	font-size: 12px;
+	color: #646970;
+	text-decoration: none;
 }
 
-.flygit-meta li {
-    margin-bottom: 4px;
+.flygit-repo-link:hover { color: var(--fg-accent); }
+
+.flygit-repo-link .dashicons {
+	font-size: 12px;
+	width: 12px;
+	height: 12px;
 }
 
-.flygit-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+.flygit-card-badges {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
 }
 
-.flygit-inline-form {
-    display: inline-flex;
-    align-items: center;
-    margin: 0;
+/* ---------- Card Meta ---------- */
+
+.flygit-card-meta {
+	display: grid;
+	grid-template-columns: repeat(4, auto);
+	gap: 8px 20px;
+	margin: 0;
+	padding: 12px 0;
+	border-top: 1px solid #f0f0f1;
+	border-bottom: 1px solid #f0f0f1;
 }
 
-.flygit-inline-form button {
-    margin: 0;
+@media (max-width: 600px) {
+	.flygit-card-meta { grid-template-columns: repeat(2, 1fr); }
 }
 
-.flygit-action-link {
-    display: inline-flex;
+.flygit-card-meta dt {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	color: #8c8f94;
+	margin: 0 0 2px;
 }
 
-.flygit-action-link a {
-    margin: 0;
+.flygit-card-meta dd {
+	margin: 0;
+	font-size: 13px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
 }
 
-.flygit-actions .button.disabled {
-    pointer-events: none;
-    opacity: 0.6;
+.flygit-sha {
+	font-size: 11px;
+	background: #f0f0f1;
+	padding: 1px 6px;
+	border-radius: 4px;
+	color: #50575e;
 }
 
-.flygit-section-footer {
-    border-top: 1px solid #dcdcde;
-    padding: 16px 20px;
-    display: grid;
-    gap: 12px;
-    background: #f6f7f7;
+/* ---------- Toggle Switch ---------- */
+
+.flygit-switch {
+	position: relative;
+	width: 36px;
+	height: 20px;
+	border: none;
+	border-radius: 999px;
+	background: #c3c4c7;
+	cursor: pointer;
+	padding: 0;
+	transition: background 0.2s ease;
 }
 
-.flygit-form {
-    display: grid;
-    gap: 12px;
+.flygit-switch.is-on { background: var(--fg-success); }
+
+.flygit-switch-knob {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	transition: left 0.2s ease;
 }
 
-.flygit-form label {
-    display: grid;
-    gap: 4px;
-    font-weight: 500;
+.flygit-switch.is-on .flygit-switch-knob { left: 18px; }
+
+/* ---------- Card Notices ---------- */
+
+.flygit-update-notice,
+.flygit-error-notice {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 10px 12px;
+	border-radius: 6px;
+	font-size: 13px;
 }
 
-.flygit-form input,
-.flygit-form textarea {
-    width: 100%;
+.flygit-update-notice {
+	background: #fcf9e8;
+	color: #4d3d00;
 }
 
-.flygit-installation-settings {
-    border-top: 1px solid #dcdcde;
-    padding-top: 12px;
-    display: grid;
-    gap: 12px;
+.flygit-update-notice .dashicons { color: var(--fg-warning); }
+
+.flygit-update-notice strong { display: block; }
+
+.flygit-commit-msg {
+	display: block;
+	color: #6f5f00;
+	margin: 2px 0;
+	word-break: break-word;
 }
 
-.flygit-snippets-body {
-    padding: 20px;
-    display: grid;
-    gap: 20px;
+.flygit-error-notice {
+	background: #fcf0f1;
+	color: #691c1d;
 }
 
-.flygit-snippet-form .description {
-    margin: 0;
+.flygit-error-notice .dashicons { color: var(--fg-danger); }
+
+/* ---------- Card Actions ---------- */
+
+.flygit-card-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
-.flygit-snippets-list {
-    display: grid;
-    gap: 12px;
+.flygit-card-actions .button .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	line-height: 1.8;
+	margin-right: 2px;
 }
 
-.flygit-snippet-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 12px;
+.flygit-spacer { flex: 1; }
+
+.flygit-inline-form { display: inline-flex; margin: 0; }
+
+.flygit-link-muted,
+.flygit-link-danger {
+	background: none;
+	border: none;
+	padding: 4px 6px;
+	cursor: pointer;
+	font-size: 12px;
+	text-decoration: none;
 }
 
-.flygit-snippet-item {
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
-    background: #f6f7f7;
-    padding: 12px 16px;
-    display: grid;
-    gap: 6px;
+.flygit-link-muted { color: #646970; }
+.flygit-link-muted:hover { color: #2c3338; }
+.flygit-link-danger { color: var(--fg-danger); }
+.flygit-link-danger:hover { color: #8a2424; text-decoration: underline; }
+
+/* ---------- Empty State ---------- */
+
+.flygit-empty {
+	text-align: center;
+	background: var(--fg-bg-card);
+	border: 1px dashed var(--fg-border);
+	border-radius: var(--fg-radius);
+	padding: 60px 24px;
 }
 
-.flygit-snippet-title {
-    font-weight: 600;
-    font-size: 15px;
+.flygit-empty .dashicons {
+	font-size: 56px;
+	width: 56px;
+	height: 56px;
+	color: #c3c4c7;
 }
 
-.flygit-snippet-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 13px;
-    color: #50575e;
+.flygit-empty h2 { margin: 12px 0 4px; }
+
+.flygit-empty p {
+	color: #646970;
+	margin: 0 0 20px;
 }
 
-.flygit-snippet-meta span {
-    display: inline-flex;
-    gap: 4px;
+/* ---------- Panels / Forms ---------- */
+
+.flygit-panel {
+	background: var(--fg-bg-card);
+	border: 1px solid var(--fg-border);
+	border-radius: var(--fg-radius);
+	box-shadow: var(--fg-shadow);
+	padding: 24px 28px;
 }
 
-.flygit-snippet-description {
-    margin: 0;
-    color: #2c3338;
+.flygit-panel-narrow { max-width: 720px; }
+
+.flygit-panel h2 { margin-top: 0; }
+
+.flygit-panel-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 8px;
 }
 
-.flygit-snippets-path-alt {
-    margin-left: 4px;
-    color: #50575e;
-    font-size: 12px;
+.flygit-panel-head h2 { margin: 0; }
+
+.flygit-muted { color: #646970; }
+
+.flygit-subhead {
+	margin: 28px 0 12px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 14px;
 }
 
-.flygit-installation-settings h4 {
-    margin: 0;
-    font-size: 15px;
+.flygit-field { margin-bottom: 18px; }
+
+.flygit-field label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+	font-size: 13px;
 }
 
-.flygit-installation-webhook {
-    display: grid;
-    gap: 8px;
+.flygit-field input[type="text"],
+.flygit-field input[type="password"],
+.flygit-field input[type="number"],
+.flygit-field select {
+	width: 100%;
+	max-width: 480px;
 }
 
-.flygit-installation-subtitle {
-    font-weight: 600;
-    font-size: 13px;
-    color: #1d2327;
+.flygit-field .required { color: var(--fg-danger); }
+
+.flygit-field-row {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
 }
 
-.flygit-button-danger {
-    background: #b32d2e;
-    border-color: #b32d2e;
-    color: #fff;
+.flygit-field-row .flygit-field { flex: 1; min-width: 140px; }
+
+.flygit-field-grow { flex: 2 !important; }
+
+.flygit-field-toggle label { font-weight: 400; }
+
+.flygit-toggle-label {
+	display: flex !important;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
 }
 
-.flygit-button-danger:hover,
-.flygit-button-danger:focus {
-    background: #8a2424;
-    border-color: #8a2424;
-    color: #fff;
+.flygit-mt-8 { margin-top: 8px; }
+
+.flygit-hr {
+	border: none;
+	border-top: 1px solid #f0f0f1;
+	margin: 24px 0;
 }
 
-.flygit-webhook-content {
-    padding: 20px;
-    display: grid;
-    gap: 20px;
+.flygit-submit-row { margin-bottom: 8px; }
+
+/* ---------- Copy Rows ---------- */
+
+.flygit-copy-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 }
 
-.flygit-webhook-grid {
-    display: grid;
-    gap: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+.flygit-copy-row code {
+	padding: 6px 10px;
+	background: #f6f7f7;
+	border-radius: 6px;
+	font-size: 12px;
+	word-break: break-all;
 }
 
-.flygit-webhook-list {
-    display: grid;
-    gap: 16px;
+/* ---------- Details / Code ---------- */
+
+.flygit-details { margin-top: 20px; }
+
+.flygit-details summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--fg-accent);
 }
 
-.flygit-webhook-card {
-    background: #ffffff;
-    border: 1px solid #dcdcde;
-    border-radius: 6px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.flygit-code {
+	background: #1d2327;
+	color: #9ec2e6;
+	border-radius: 8px;
+	padding: 16px;
+	overflow: auto;
+	font-size: 12px;
+	line-height: 1.6;
+	margin-top: 10px;
 }
 
-.flygit-webhook-card-header {
-    margin: 0;
+/* ---------- Activity Log ---------- */
+
+.flygit-log {
+	margin: 0;
+	list-style: none;
 }
 
-.flygit-webhook-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
+.flygit-log-entry {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 9px 4px;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 13px;
 }
 
-.flygit-webhook-meta {
-    margin: 6px 0 0;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 13px;
-    color: #50575e;
+.flygit-log-entry:last-child { border-bottom: none; }
+
+.flygit-log-dot {
+	flex-shrink: 0;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #c3c4c7;
+	position: relative;
+	top: -1px;
 }
 
-.flygit-webhook-body {
-    display: grid;
-    gap: 12px;
+.flygit-log-success .flygit-log-dot { background: var(--fg-success); }
+.flygit-log-warning .flygit-log-dot { background: var(--fg-warning); }
+.flygit-log-error   .flygit-log-dot { background: var(--fg-danger); }
+.flygit-log-info    .flygit-log-dot { background: var(--fg-info); }
+
+.flygit-log-message {
+	flex: 1;
+	word-break: break-word;
 }
 
-.flygit-webhook-endpoint {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f0f0f1;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
-    padding: 8px 10px;
+.flygit-log-time {
+	flex-shrink: 0;
+	color: #8c8f94;
+	font-size: 12px;
 }
 
-.flygit-webhook-endpoint code {
-    flex: 1;
-    word-break: break-all;
-}
+/* ---------- Buttons ---------- */
 
-.flygit-section pre {
-    background: #f6f7f7;
-    border: 1px solid #dcdcde;
-    padding: 12px;
-    border-radius: 4px;
-    overflow: auto;
-    margin: 0;
-}
-
-@media (max-width: 782px) {
-    .flygit-item summary {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-    }
+.flygit-wrap .button-hero .dashicons {
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+	line-height: 1.5;
+	margin-right: 4px;
 }
