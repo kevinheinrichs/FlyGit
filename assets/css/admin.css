@@ -326,12 +326,17 @@
 	flex-wrap: wrap;
 }
 
+.flygit-card-actions .button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
 .flygit-card-actions .button .dashicons {
 	font-size: 14px;
 	width: 14px;
 	height: 14px;
-	line-height: 1.8;
-	margin-right: 2px;
+	line-height: 1;
 }
 
 .flygit-spacer { flex: 1; }
@@ -542,10 +547,15 @@
 
 /* ---------- Buttons ---------- */
 
+.flygit-wrap .button-hero {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
 .flygit-wrap .button-hero .dashicons {
 	font-size: 18px;
 	width: 18px;
 	height: 18px;
-	line-height: 1.5;
-	margin-right: 4px;
+	line-height: 1;
 }
