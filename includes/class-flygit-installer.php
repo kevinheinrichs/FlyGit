@@ -150,6 +150,28 @@ class FlyGit_Installer {
 			wp_clean_themes_cache( true );
 		}
 
+		/**
+		 * Fires after a successful deployment (files are swapped in place).
+		 *
+		 * Listeners can reset OPcache, purge page caches, rewarm URLs etc.
+		 * FlyCache hooks this to automate the OPcache-reset + purge + rewarm
+		 * dance that otherwise has to happen manually after every deploy.
+		 *
+		 * @param array $deploy_info { type, slug, name, version, owner, repo, branch }
+		 */
+		do_action(
+			'flygit_after_deploy',
+			array(
+				'type'    => $type,
+				'slug'    => $slug,
+				'name'    => $header['name'],
+				'version' => $header['version'],
+				'owner'   => $owner,
+				'repo'    => $repo,
+				'branch'  => $branch,
+			)
+		);
+
 		return array(
 			'slug'    => $slug,
 			'name'    => $header['name'],
